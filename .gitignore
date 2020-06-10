@@ -1,7 +1,6 @@
 .DS_Store
 .idea
 yarn-error.log
-build/bundle.js
 assets/app/*
 server/config.json
 server/config.*.json

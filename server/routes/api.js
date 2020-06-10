@@ -14,7 +14,8 @@ export default (storage) => {
   const api = Router();
 
   api.put("/", (req, res) => {
-    const whiteList = req.body || req.body.white_list;
+    //TODO schema validate
+    const whiteList = req.body;
 
     storage
       .read()

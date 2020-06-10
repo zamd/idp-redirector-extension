@@ -1,6 +1,8 @@
 import path from "path";
 import morgan from "morgan";
 import Express from "express";
+import jwt from 'express-jwt';
+import jwks from 'jwks-rsa';
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import * as tools from "auth0-extension-tools";
@@ -42,24 +44,37 @@ export default function (cfg, storageProvider) {
   app.use(bodyParser.urlencoded({ extended: false }));
 
   // Configure routes.
-  app.use(
-    routes.dashboardAdmins({
-      secret: config("EXTENSION_SECRET"),
-      audience: "urn:idp-redirector",
-      rta: config("AUTH0_RTA").replace("https://", ""),
-      domain: config("AUTH0_DOMAIN"),
-      baseUrl: config("PUBLIC_WT_URL"),
-      webtaskUrl: config("PUBLIC_WT_URL"),
-      clientName: "Idp Redirector",
-      noAccessToken: true,
-      urlPrefix: "/admins",
-      sessionStorageKey: "tr-idp-redirector-key",
-      scopes:
-        "create:clients create:resource_servers read:clients read:connections",
-    })
-  );
+  // TODO: remove this, it shouldn't be needed
+  // app.use(
+  //   routes.dashboardAdmins({
+  //     secret: config("EXTENSION_SECRET"),
+  //     audience: "urn:idp-redirector",
+  //     rta: config("AUTH0_RTA").replace("https://", ""),
+  //     domain: config("AUTH0_DOMAIN"),
+  //     baseUrl: config("PUBLIC_WT_URL"),
+  //     webtaskUrl: config("PUBLIC_WT_URL"),
+  //     clientName: "Idp Redirector",
+  //     noAccessToken: true,
+  //     urlPrefix: "/admins",
+  //     sessionStorageKey: "tr-idp-redirector-key",
+  //     scopes:
+  //       "create:clients create:resource_servers read:clients read:connections",
+  //   })
+  // );
 
-  app.use("/api", api(storage));
+  const jwtCheck = jwt({
+    secret: jwks.expressJwtSecret({
+      cache: true,
+      rateLimit: true,
+      jwksRequestsPerMinute: 5,
+      jwksUri: 'https://'+config('AUTH0_DOMAIN')+'/.well-known/jwks.json'
+    }),
+    audience: 'urn:redirect-hub:admin',
+    issuer: 'https://'+config('AUTH0_DOMAIN')+'/',
+    algorithms: ['RS256']
+  });
+
+  app.use("/api", jwtCheck, api(storage));
   app.use("/meta", meta());
   app.use("/.extensions", hooks());
 

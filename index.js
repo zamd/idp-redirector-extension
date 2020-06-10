@@ -36,6 +36,7 @@ nconf.argv().env().file(path.join(__dirname, "./server/config.json")).defaults({
   AUTH0_RTA: "https://auth0.auth0.com",
   PORT: 3001,
   WT_URL: "http://localhost:3000",
+  PUBLIC_WT_URL: "http://localhost:3000",
 });
 
 // Start the server.

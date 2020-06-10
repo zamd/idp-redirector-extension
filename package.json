@@ -1,7 +1,7 @@
 {
-  "name": "thomson-reuters-idp-redirector",
+  "name": "idp-redirector-extension",
   "version": "4.3.0",
-  "description": "thomson-reuters-idp-redirector",
+  "description": "idp-redirector-extension",
   "engines": {
     "node": ">8.9"
   },
@@ -47,6 +47,7 @@
     "expect": "^1.20.2",
     "express": "^4.17.1",
     "express-jwt": "^3.4.0",
+    "express-jwt-authz": "^2.3.1",
     "glob": "^7.0.3",
     "history": "^2.1.2",
     "immutable": "^3.8.1",

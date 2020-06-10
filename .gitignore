@@ -1,0 +1,17 @@
+.DS_Store
+.idea
+yarn-error.log
+build/bundle.js
+assets/app/*
+server/config.json
+server/config.*.json
+server/data.json
+server/data.*.json
+node_modules
+npm-debug.log
+dist
+
+# coverage output
+coverage.lcov
+.nyc_output
+coverage/

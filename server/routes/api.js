@@ -1,8 +1,10 @@
 import { Router } from "express";
 import _ from "lodash";
 import { middlewares } from "auth0-extension-express-tools";
+
 import config from "../lib/config";
 import logger from "../lib/logger";
+import jwtAuthz from 'express-jwt-authz';
 
 export default (storage) => {
   const managementApiClient = middlewares.managementApiClient({
@@ -13,7 +15,7 @@ export default (storage) => {
 
   const api = Router();
 
-  api.put("/", (req, res) => {
+  api.put("/", jwtAuthz([ 'update:patterns' ]), (req, res) => {
     //TODO schema validate
     const whiteList = req.body;
 

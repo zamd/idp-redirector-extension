@@ -14,7 +14,7 @@ export default () => {
     <body>
       <div id="app">
        Idp Redirector Deployed.
-      /div>
+      </div>
     </body>
     </html>
     `;

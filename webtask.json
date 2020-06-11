@@ -16,6 +16,6 @@
     "createClient": true,
     "onUninstallPath": "/.extensions/on-uninstall",
     "onInstallPath": "/.extensions/on-install",
-    "scopes": "create:clients read:clients create:resource_servers read:resource_servers read:connections create:client_grants read:client_grants"
+    "scopes": "create:clients read:clients delete:clients create:resource_servers update:resource_servers delete:resource_servers read:resource_servers read:connections create:client_grants read:client_grants"
   }
 }

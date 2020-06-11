@@ -1,7 +1,7 @@
 {
   "title": "TR Idp Redirector Extension",
   "name": "idp-redirector",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "author": "auth0",
   "useHashName": false,
   "description": "This extension implements TR specific Idp redirection features.",

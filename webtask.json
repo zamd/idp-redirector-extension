@@ -1,10 +1,10 @@
 {
-  "title": "TR Idp Redirector Extension",
+  "title": "TR IdP Redirector Extension",
   "name": "idp-redirector",
   "version": "0.0.1",
   "author": "auth0",
   "useHashName": false,
-  "description": "This extension implements TR specific Idp redirection features.",
+  "description": "This extension implements TR specific IdP redirection features.",
   "type": "application",
   "category": "end_user",
   "logoUrl": "https://res-1.cloudinary.com/crunchbase-production/image/upload/c_lpad,h_120,w_120,f_auto,b_white,q_auto:eco/v1397191966/68aa3a98f81f5e09a3afb00a73461434.png",
@@ -17,5 +17,20 @@
     "onUninstallPath": "/.extensions/on-uninstall",
     "onInstallPath": "/.extensions/on-install",
     "scopes": "create:clients read:clients delete:clients create:resource_servers update:resource_servers delete:resource_servers read:resource_servers read:connections create:client_grants read:client_grants"
+  },
+  "secrets": {
+    "EXTENSION_API": {
+      "description": "The audience for the extension API",
+      "default": "urn:idp-redirector-api"
+    },
+    "LOGS_API_KEY": {
+      "description": "API key for logs offloading",
+      "required": true,
+      "type": "password"
+    },
+    "LOGS_URL": {
+      "description": "A URL for sending the logs",
+      "example": "https://example.com/logStream"
+    }
   }
 }

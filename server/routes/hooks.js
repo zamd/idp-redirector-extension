@@ -17,7 +17,7 @@ export default () => {
     clientSecret: config('AUTH0_CLIENT_SECRET')
   }));
   hooks.delete('/on-uninstall', (req, res) => {
-    logger.debug('Uninstall running...');
+    logger.debug('Uninstall running version 0.0.1 ...');
     req.auth0.clients.delete({ client_id: config('AUTH0_CLIENT_ID') })
       .then(() => {
         logger.debug(`Deleted client: ${config('AUTH0_CLIENT_ID')}`);
@@ -39,7 +39,7 @@ export default () => {
     clientSecret: config('AUTH0_CLIENT_SECRET')
   }));
   hooks.post('/on-install', (req, res) => {
-    console.log('carlos, checking console for install');
+    console.log('carlos, checking console for install set to post');
     logger.info('Install running...');
   });
 

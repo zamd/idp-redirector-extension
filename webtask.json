@@ -15,6 +15,6 @@
   "auth0": {
     "createClient": true,
     "onUninstallPath": "/.extensions/on-uninstall",
-    "scopes": "create:clients create:resource_servers read:clients read:connections"
+    "scopes": "create:clients read:clients create:resource_servers read:resource_servers read:connections create:client_grants read:client_grants"
   }
 }

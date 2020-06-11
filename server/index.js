@@ -9,7 +9,7 @@ import { routes } from "auth0-extension-express-tools";
 import api from "./routes/api";
 import hooks from "./routes/hooks";
 import meta from "./routes/meta";
-import htmlRoute from "./routes/html";
+import index from "./routes/index";
 import config from "./lib/config";
 import logger from "./lib/logger";
 import { errorHandler } from "./lib/middlewares";
@@ -63,8 +63,7 @@ export default function (cfg, storageProvider) {
   app.use("/meta", meta());
   app.use("/.extensions", hooks());
 
-  // Fallback to rendering HTML.
-  app.get("*", cookieParser(), htmlRoute());
+  app.get("/", cookieParser(), index());
 
   // Generic error handler.
   app.use(errorHandler(logger.error));

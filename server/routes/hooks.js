@@ -41,6 +41,8 @@ export default () => {
   hooks.post('/on-install', (req, res) => {
     console.log('carlos, checking console for install set to post');
     logger.info('Install running...');
+
+    res.sendStatus(204);
   });
 
   return hooks;

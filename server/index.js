@@ -6,7 +6,6 @@ import jwks from 'jwks-rsa';
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import * as tools from "auth0-extension-tools";
-import { routes } from "auth0-extension-express-tools";
 
 import api from "./routes/api";
 import hooks from "./routes/hooks";
@@ -42,25 +41,6 @@ export default function (cfg, storageProvider) {
   );
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
-
-  // Configure routes.
-  // TODO: remove this, it shouldn't be needed
-  // app.use(
-  //   routes.dashboardAdmins({
-  //     secret: config("EXTENSION_SECRET"),
-  //     audience: "urn:idp-redirector",
-  //     rta: config("AUTH0_RTA").replace("https://", ""),
-  //     domain: config("AUTH0_DOMAIN"),
-  //     baseUrl: config("PUBLIC_WT_URL"),
-  //     webtaskUrl: config("PUBLIC_WT_URL"),
-  //     clientName: "Idp Redirector",
-  //     noAccessToken: true,
-  //     urlPrefix: "/admins",
-  //     sessionStorageKey: "tr-idp-redirector-key",
-  //     scopes:
-  //       "create:clients create:resource_servers read:clients read:connections",
-  //   })
-  // );
 
   const jwtCheck = jwt({
     secret: jwks.expressJwtSecret({

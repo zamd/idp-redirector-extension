@@ -31,5 +31,17 @@ export default () => {
         res.sendStatus(204);
       });
   });
+
+  hooks.use('/on-install', hookValidator('/.extensions/on-install'));
+  hooks.use(middlewares.managementApiClient({
+    domain: config('AUTH0_DOMAIN'),
+    clientId: config('AUTH0_CLIENT_ID'),
+    clientSecret: config('AUTH0_CLIENT_SECRET')
+  }));
+  hooks.delete('/on-install', (req, res) => {
+    console.log('carlos, checking console for install');
+    logger.info('Install running...');
+  });
+
   return hooks;
 };

@@ -49,7 +49,7 @@ export default function (cfg, storageProvider) {
       jwksRequestsPerMinute: 5,
       jwksUri: 'https://'+config('AUTH0_DOMAIN')+'/.well-known/jwks.json'
     }),
-    audience: 'urn:redirect-hub:admin',
+    audience: config('EXTENSION_AUDIENCE'),
     issuer: 'https://'+config('AUTH0_DOMAIN')+'/',
     algorithms: ['RS256']
   });

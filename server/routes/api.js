@@ -33,7 +33,7 @@ export default (storage) => {
       });
   });
 
-  api.get("/", (req, res) => {
+  api.get("/", jwtAuthz([ 'read:patterns' ]), (req, res) => {
     logger.info("reading data");
     storage.read().then((data) => {
       res.json(data);

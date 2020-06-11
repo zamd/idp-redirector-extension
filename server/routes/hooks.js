@@ -19,7 +19,7 @@ export default () => {
   hooks.delete('/on-uninstall', (req, res) => {
     logger.debug('Uninstall running version 0.0.1 ...');
     req.auth0.clients.delete({ client_id: config('AUTH0_CLIENT_ID') })
-      .then(() => req.auth0.resourceServers.delete({ identifier: config('EXTENSION_AUDIENCE') })
+      .then(() => req.auth0.resourceServers.delete({ id: config('EXTENSION_AUDIENCE') })
         .then(() => {
           logger.debug(`Deleted client: ${config('AUTH0_CLIENT_ID')}`);
           logger.debug(`Deleted API: ${config('EXTENSION_AUDIENCE')}`);

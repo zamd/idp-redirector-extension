@@ -10,11 +10,12 @@
   "logoUrl": "https://res-1.cloudinary.com/crunchbase-production/image/upload/c_lpad,h_120,w_120,f_auto,b_white,q_auto:eco/v1397191966/68aa3a98f81f5e09a3afb00a73461434.png",
   "initialUrlPath": "/",
   "docsUrl": "https://auth0.com/docs",
-  "repository": "https://github.com/auth0-customers/thomson-reuters-idp-redirector.git",
+  "repository": "https://github.com/auth0-customers/idp-redirector.git",
   "keywords": ["auth0", "extension"],
   "auth0": {
     "createClient": true,
     "onUninstallPath": "/.extensions/on-uninstall",
+    "onInstallPath": "/.extensions/on-install",
     "scopes": "create:clients read:clients create:resource_servers read:resource_servers read:connections create:client_grants read:client_grants"
   }
 }

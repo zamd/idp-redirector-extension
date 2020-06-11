@@ -154,6 +154,7 @@
     ],
     "auth0": {
       "createClient": true,
+      "onInstallPath": "/.extensions/on-install",
       "onUninstallPath": "/.extensions/on-uninstall",
       "scopes": "create:clients create:resource_servers read:clients read:connections"
     },

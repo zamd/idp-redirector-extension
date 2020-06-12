@@ -15,7 +15,7 @@ const config = require('./lib/config');
 const logger = require('./lib/logger');
 const { errorHandler } = require('./lib/middlewares');
 
-module.export = (cfg, storageProvider) => {
+module.exports = (cfg, storageProvider) => {
   config.setProvider(cfg);
 
   const storage = storageProvider
@@ -57,8 +57,7 @@ module.export = (cfg, storageProvider) => {
   app.use("/api", jwtCheck, api(storage));
   app.use("/meta", meta());
   app.use("/.extensions", hooks());
-
-  app.get("/", cookieParser(), index());
+  app.use(index(storage));
 
   // Generic error handler.
   app.use(errorHandler(logger.error));

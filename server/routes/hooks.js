@@ -5,7 +5,7 @@ const config= require('../lib/config');
 const logger= require('../lib/logger');
 const ruleScript= require('../lib/rule');
 
-export default () => {
+module.exports = () => {
   const DENY_USER_ACCESS_RULE_NAME =
     "DO-NOT-MODIFY Deny User Based Access for IdP Redirector API";
 

@@ -73,7 +73,8 @@ module.exports = (storage) => {
           }
 
           const newPattern = {
-            pattern,
+            patternRaw,
+            endsWithWildcard,
             clientName: clientPattern.clientName,
           };
 

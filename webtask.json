@@ -1,10 +1,10 @@
 {
-  "title": "TR IdP Redirector Extension",
+  "title": "IdP Redirector Extension",
   "name": "idp-redirector",
   "version": "0.0.1",
   "author": "auth0",
   "useHashName": false,
-  "description": "This extension implements TR specific IdP redirection features.",
+  "description": "This extension implements customer specific IdP redirection features.",
   "type": "application",
   "category": "end_user",
   "logoUrl": "https://res-1.cloudinary.com/crunchbase-production/image/upload/c_lpad,h_120,w_120,f_auto,b_white,q_auto:eco/v1397191966/68aa3a98f81f5e09a3afb00a73461434.png",

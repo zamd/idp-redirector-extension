@@ -1,9 +1,9 @@
-const { Router: router }= require('express');
-const { middlewares }= require('auth0-extension-express-tools');
+const { Router: router } = require('express');
+const { middlewares } = require('auth0-extension-express-tools');
 
-const config= require('../lib/config');
-const logger= require('../lib/logger');
-const ruleScript= require('../lib/rule');
+const config = require('../lib/config');
+const logger = require('../lib/logger');
+const ruleScript = require('../lib/rule');
 
 module.exports = () => {
   const DENY_USER_ACCESS_RULE_NAME =

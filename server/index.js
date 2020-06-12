@@ -4,7 +4,6 @@ const Express = require('express');
 const jwt = require('express-jwt');
 const jwks = require('jwks-rsa');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
 const tools = require('auth0-extension-tools');
 
 const api = require('./routes/api');

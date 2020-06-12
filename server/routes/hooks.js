@@ -116,6 +116,7 @@ export default () => {
     const updateExtensionClient = req.auth0.updateClient(
       { client_id: config("AUTH0_CLIENT_ID") },
       {
+        app_type: "non_interactive",
         grant_types: ["client_credentials"],
       }
     );

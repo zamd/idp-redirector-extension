@@ -1,9 +1,9 @@
-import { Router as router } from "express";
-import { middlewares } from "auth0-extension-express-tools";
+const { Router: router }= require('express');
+const { middlewares }= require('auth0-extension-express-tools');
 
-import config from "../lib/config";
-import logger from "../lib/logger";
-import ruleScript from "../lib/rule";
+const config= require('../lib/config');
+const logger= require('../lib/logger');
+const ruleScript= require('../lib/rule');
 
 export default () => {
   const DENY_USER_ACCESS_RULE_NAME =

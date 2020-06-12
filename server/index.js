@@ -1,21 +1,21 @@
-import path from "path";
-import morgan from "morgan";
-import Express from "express";
-import jwt from 'express-jwt';
-import jwks from 'jwks-rsa';
-import bodyParser from "body-parser";
-import cookieParser from "cookie-parser";
-import * as tools from "auth0-extension-tools";
+const path = require('path');
+const morgan = require('morgan');
+const Express = require('express');
+const jwt = require('express-jwt');
+const jwks = require('jwks-rsa');
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const tools = require('auth0-extension-tools');
 
-import api from "./routes/api";
-import hooks from "./routes/hooks";
-import meta from "./routes/meta";
-import index from "./routes/index";
-import config from "./lib/config";
-import logger from "./lib/logger";
-import { errorHandler } from "./lib/middlewares";
+const api = require('./routes/api');
+const hooks = require('./routes/hooks');
+const meta = require('./routes/meta');
+const index = require('./routes/index');
+const config = require('./lib/config');
+const logger = require('./lib/logger');
+const { errorHandler } = require('./lib/middlewares');
 
-export default function (cfg, storageProvider) {
+module.export = (cfg, storageProvider) => {
   config.setProvider(cfg);
 
   const storage = storageProvider
@@ -63,4 +63,4 @@ export default function (cfg, storageProvider) {
   // Generic error handler.
   app.use(errorHandler(logger.error));
   return app;
-}
+};

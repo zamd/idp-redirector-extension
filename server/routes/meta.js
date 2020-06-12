@@ -1,5 +1,5 @@
-import express from 'express';
-import metadata from '../../webtask.json';
+const express = require('express');
+const metadata = require('../../webtask.json');
 
 export default () => {
   const api = express.Router();

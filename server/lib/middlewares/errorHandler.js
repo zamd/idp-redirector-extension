@@ -1,4 +1,4 @@
-export default (errorLogger) =>
+module.exports = (errorLogger) =>
   (err, req, res, next) => {
     if (errorLogger) {
       errorLogger(err);

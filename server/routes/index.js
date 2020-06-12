@@ -5,7 +5,7 @@ import logger from "../lib/logger";
 import template from "../lib/html";
 import ejs from "ejs";
 
-const findClientAndResourcServer = async (req, res, next) => {
+const findClientAndResourceServer = async (req, res, next) => {
   req.extensionResources = {};
   try {
     [
@@ -27,7 +27,7 @@ const findClientAndResourcServer = async (req, res, next) => {
   next();
 };
 
-export default () => {
+module.exports = () => {
   const managementApiClient = middlewares.managementApiClient({
     domain: config("AUTH0_DOMAIN"),
     clientId: config("AUTH0_CLIENT_ID"),
@@ -36,7 +36,7 @@ export default () => {
 
   const index = Router();
   index.use(managementApiClient);
-  index.use(findClientAndResourcServer);
+  index.use(findClientAndResourceServer);
 
   index.get("/", (req, res) => {
     const {

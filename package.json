@@ -14,7 +14,8 @@
     "extension:build": "a0-ext build:server ./webtask.js ./dist && cp ./dist/idp-redirector.extension.$npm_package_version.js ./build/bundle.js && cp ./webtask.json ./dist/webtask.json",
     "serve:dev": "cross-env NODE_ENV=development nodemon -e js index.js",
     "serve:prod": "cross-env NODE_ENV=production node index.js",
-    "test": "cross-env NODE_ENV=test nyc --reporter=lcov mocha --require ignore-styles tests/mocha.js './tests/**/*.tests.js'",
+    "test": "cross-env NODE_ENV=test nyc mocha --require ignore-styles tests/mocha.js './tests/**/*.tests.js'",
+    "test:lcov": "cross-env NODE_ENV=test nyc --reporter=lcov mocha --require ignore-styles tests/mocha.js './tests/**/*.tests.js'",
     "test:watch": "cross-env NODE_ENV=test mocha --require ignore-styles tests/mocha.js './tests/**/*.tests.js' --watch",
     "test:pre": "npm run test:clean && npm run lint:js",
     "test:clean": "rimraf ./coverage && rimraf ./.nyc_output",
@@ -49,6 +50,7 @@
     "glob": "^7.0.3",
     "history": "^2.1.2",
     "immutable": "^3.8.1",
+    "joi": "^9.0.4",
     "json-loader": "^0.5.4",
     "jsonwebtoken": "^8.3.0",
     "jwks-rsa": "^1.1.0",
@@ -59,6 +61,7 @@
     "morgan": "^1.7.0",
     "ms": "^0.7.1",
     "nconf": "^0.8.4",
+    "p-throttler": "^0.1.1",
     "prop-types": "^15.6.0",
     "qs": "^6.5.2",
     "react": "15.6.1",
@@ -94,6 +97,7 @@
     "autoprefixer": "^6.5.1",
     "babel-eslint": "7.1.1",
     "babel-loader": "^8.0.4",
+    "babel-plugin-source-map-support": "^2.1.2",
     "babel-polyfill": "^6.26.0",
     "chai": "^4.2.0",
     "chai-match": "^1.1.1",
@@ -131,6 +135,7 @@
     "redux-simple-router": "^2.0.4",
     "redux-static": "^1.0.0",
     "rimraf": "^2.5.2",
+    "source-map-support": "^0.5.19",
     "style-loader": "^0.23.1",
     "supertest": "^2.0.1",
     "webpack": "4.29.6"
@@ -202,15 +207,10 @@
   },
   "nyc": {
     "extension": [
-      ".jsx"
+      ".js"
     ],
     "include": [
-      "client/**/*.js",
-      "client/**/*.jsx",
       "server/**/*.js"
-    ],
-    "require": [
-      "@babel/register"
     ],
     "sourceMap": true,
     "instrument": true

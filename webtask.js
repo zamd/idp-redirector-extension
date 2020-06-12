@@ -1,6 +1,6 @@
 const tools = require("auth0-extension-express-tools");
 
-const expressApp = require("./server").default;
+const expressApp = require("./server");
 const config = require("./server/lib/config");
 const logger = require("./server/lib/logger");
 

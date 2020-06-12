@@ -16,12 +16,16 @@
     "createClient": true,
     "onUninstallPath": "/.extensions/on-uninstall",
     "onInstallPath": "/.extensions/on-install",
-    "scopes": "create:clients read:clients delete:clients create:resource_servers update:resource_servers delete:resource_servers read:resource_servers read:connections create:client_grants read:client_grants"
+    "scopes": "create:clients read:clients delete:clients create:resource_servers update:resource_servers delete:resource_servers read:resource_servers read:connections create:client_grants read:client_grants read:rules create:rules delete:rules"
   },
   "secrets": {
     "EXTENSION_AUDIENCE": {
       "description": "The audience for the extension API",
       "default": "urn:idp-redirector-api"
+    },
+    "DEPLOYMENT_CLIENT_NAME": {
+      "description": "The name of the CI/CD client",
+      "default": "IDP Redirector CI/CD Client"
     },
     "LOGS_API_KEY": {
       "description": "API key for logs offloading",

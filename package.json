@@ -145,6 +145,7 @@
     "name": "idp-redirector",
     "version": "1.0.0",
     "author": "auth0",
+    "useBabel": false,
     "useHashName": false,
     "description": "This extension implements TR specific Idp redirection features.",
     "type": "application",

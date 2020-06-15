@@ -58,13 +58,6 @@ module.exports = (storage) => {
   });
 
   index.get("/", ensureAuth0ApiClient(), (req, res) => {
-    if (!global.errorPage) {
-      console.log("setting global errorPage");
-      global.errorPage = "https://ny.com";
-    } else {
-      console.log("Found error page cached");
-      console.log(global.errorPage);
-    }
     const state = req.query.state;
     if (!state) {
       return redirectToErrorPage(req, res, {

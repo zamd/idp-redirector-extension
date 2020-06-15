@@ -53,19 +53,22 @@ describe("#idp-redirector", () => {
       const expectedHostToPattern = {
         "https://url1.com": [
           {
-            pattern: "https://url1.com/withPath*",
+            patternRaw: "https://url1.com/withPath",
+            endsWithWildcard: true,
             clientName: "client name",
             loginUrl: "https://url1.com/login",
           },
           {
-            pattern: "https://url1.com",
+            patternRaw: "https://url1.com",
+            endsWithWildcard: false,
             clientName: "client name",
             loginUrl: "https://url1.com/login",
           },
         ],
         "https://url2.com": [
           {
-            pattern: "https://url2.com?*",
+            patternRaw: "https://url2.com?",
+            endsWithWildcard: true,
             clientName: "client 2",
           },
         ],

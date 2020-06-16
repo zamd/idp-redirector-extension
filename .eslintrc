@@ -1,26 +1,18 @@
 {
-  "extends": "auth0",
-  "ecmaFeatures": {
-    "jsx": true,
-    "modules": true
-  },
+  "extends": "auth0-base",
   "env": {
-    "browser": true,
     "node": true,
     "es6": true,
     "mocha": true
   },
-  "parser": "babel-eslint",
   "rules": {
     "max-len": 0,
-    "react/display-name": 0,
     "array-bracket-spacing": [2, "always"],
     "comma-dangle": [2, "never"],
     "eol-last": 2,
     "indent": [2, 2, {
       "SwitchCase": 1
     }],
-    "jsx-quotes": [2, "prefer-double"],
     "prefer-stateless-function": 0,
     "new-cap": 0,
     "no-multiple-empty-lines": 2,
@@ -38,7 +30,5 @@
     }]
   },
   "plugins": [
-    "react",
-    "babel"
   ]
 }

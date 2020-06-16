@@ -34,30 +34,30 @@ module.exports = (storage) => {
       clientSecret: config("AUTH0_CLIENT_SECRET"),
     });
   };
-  const redirectToErrorPage = async (req, res, errorInfo) => {
+  const redirectToErrorPage = (req, res, errorInfo) => {
     const queryParams = {
       client_id: "",
       connection: "",
       lang: req.headers["accept-language"],
       ...errorInfo,
     };
-
     logger.error("Error: ", queryParams);
+    res.redirect(`/error?${querystring.stringify(queryParams)}`);
+  };
+
+  index.get("/error", ensureAuth0ApiClient(), async (req, res) => {
     try {
       const url = new URL(await getErrorPageFromTenantSettings(req));
-      url.search = querystring.stringify(queryParams);
+      url.search = querystring.stringify(req.query);
       res.redirect(url.href);
     } catch (error) {
       logger.error("Invalid custom error_page url.", error);
       res.status(500).send("Invalid custom error_page url.");
     }
-  };
-
-  index.get("/error", (req, res) => {
-    res.json(req.query);
   });
 
-  index.get("/", ensureAuth0ApiClient(), (req, res) => {
+  //TODO: optimize by moving ensureAuth0ApiClient to /error handler
+  index.get("/", (req, res) => {
     const state = req.query.state;
     if (!state) {
       return redirectToErrorPage(req, res, {

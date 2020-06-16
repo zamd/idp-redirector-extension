@@ -1,4 +1,3 @@
-const nock = require("nock");
 const { expect } = require("chai");
 const request = require("supertest");
 const { describe, it, before } = require("mocha");
@@ -10,14 +9,14 @@ const config = require("../../server/lib/config");
 const api = require("../../server/routes/api");
 
 describe("#idp-redirector", () => {
-  config.setProvider((key) => defaultConfig[key], null);
+  config.setProvider(config, null);
 
   const storage = {
     read: () => Promise.resolve(storage.data),
-    write: (data) => {
+    write: data => {
       storage.data = data;
       return Promise.resolve();
-    },
+    }
   };
 
   const app = express();
@@ -26,7 +25,7 @@ describe("#idp-redirector", () => {
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use((req, res, next) => {
     req.user = {
-      scope: "read:patterns update:patterns",
+      scope: "read:patterns update:patterns"
     };
     next();
   });
@@ -37,17 +36,17 @@ describe("#idp-redirector", () => {
   });
 
   describe("PUT /api", () => {
-    it("Should write valid whitelist", (done) => {
+    it("Should write valid whitelist", done => {
       const whiteListData = [
         {
           clientName: "client name",
           loginUrl: "https://url1.com/login",
-          patterns: ["https://url1.com/withPath*", "https://url1.com"],
+          patterns: ["https://url1.com/withPath*", "https://url1.com"]
         },
         {
           clientName: "client 2",
-          patterns: ["https://url2.com?*"],
-        },
+          patterns: ["https://url2.com?*"]
+        }
       ];
 
       const expectedHostToPattern = {
@@ -56,22 +55,22 @@ describe("#idp-redirector", () => {
             patternRaw: "https://url1.com/withPath",
             endsWithWildcard: true,
             clientName: "client name",
-            loginUrl: "https://url1.com/login",
+            loginUrl: "https://url1.com/login"
           },
           {
             patternRaw: "https://url1.com",
             endsWithWildcard: false,
             clientName: "client name",
-            loginUrl: "https://url1.com/login",
-          },
+            loginUrl: "https://url1.com/login"
+          }
         ],
         "https://url2.com": [
           {
             patternRaw: "https://url2.com?",
             endsWithWildcard: true,
-            clientName: "client 2",
-          },
-        ],
+            clientName: "client 2"
+          }
+        ]
       };
 
       request(app)
@@ -90,7 +89,7 @@ describe("#idp-redirector", () => {
         });
     });
 
-    const whiteListFailureTest = (whiteListData, errorMessage) => (done) => {
+    const whiteListFailureTest = (whiteListData, errorMessage) => done => {
       request(app)
         .put("/api")
         .send(whiteListData)
@@ -110,8 +109,8 @@ describe("#idp-redirector", () => {
         [
           {
             clientName: "client name",
-            patterns: ["https://example.com*"],
-          },
+            patterns: ["https://example.com*"]
+          }
         ],
         "pattern can not have a wildcard as part of the hostname: https://example.com*"
       )
@@ -123,8 +122,8 @@ describe("#idp-redirector", () => {
         [
           {
             clientName: "client name",
-            patterns: ["https://example.com/path*/somethingelse"],
-          },
+            patterns: ["https://example.com/path*/somethingelse"]
+          }
         ],
         'ValidationError: "value" at position 0 fails because [child "patterns" fails because ["patterns" at position 0 fails because ["0" with value "https:&#x2f;&#x2f;example.com&#x2f;path&#x2a;&#x2f;somethingelse" fails to match the required pattern: /^[^\\*]*\\*?$/]]]'
       )
@@ -136,8 +135,8 @@ describe("#idp-redirector", () => {
         [
           {
             clientName: "client name",
-            patterns: ["some non url"],
-          },
+            patterns: ["some non url"]
+          }
         ],
         "pattern must be in the format of a URL: some non url"
       )
@@ -149,8 +148,8 @@ describe("#idp-redirector", () => {
         [
           {
             clientName: "",
-            patterns: ["https://example.com"],
-          },
+            patterns: ["https://example.com"]
+          }
         ],
         'ValidationError: "value" at position 0 fails because [child "clientName" fails because ["clientName" is not allowed to be empty]]'
       )
@@ -162,8 +161,8 @@ describe("#idp-redirector", () => {
         [
           {
             clientName: { key: "name" },
-            patterns: ["https://example.com"],
-          },
+            patterns: ["https://example.com"]
+          }
         ],
         'ValidationError: "value" at position 0 fails because [child "clientName" fails because ["clientName" must be a string]]'
       )
@@ -176,8 +175,8 @@ describe("#idp-redirector", () => {
           {
             clientName: "the client",
             loginUrl: "not a url but longer than 10",
-            patterns: ["https://example.com"],
-          },
+            patterns: ["https://example.com"]
+          }
         ],
         "loginUrl must be in the format of a URL: not a url but longer than 10"
       )
@@ -190,8 +189,8 @@ describe("#idp-redirector", () => {
           {
             clientName: "the client",
             someOtherKey: "not a url",
-            patterns: ["https://example.com"],
-          },
+            patterns: ["https://example.com"]
+          }
         ],
         'ValidationError: "value" at position 0 fails because ["someOtherKey" is not allowed]'
       )
@@ -203,14 +202,14 @@ describe("#idp-redirector", () => {
         [
           {
             clientName: "the client",
-            patterns: [],
-          },
+            patterns: []
+          }
         ],
         'ValidationError: "value" at position 0 fails because [child "patterns" fails because ["patterns" does not contain 1 required value(s)]]'
       )
     );
 
-    it("fails with empty request", (done) => {
+    it("fails with empty request", done => {
       request(app)
         .put("/api")
         .expect(400)
@@ -227,13 +226,13 @@ describe("#idp-redirector", () => {
   });
 
   describe("GET /api", () => {
-    it("Should get valid whitelist", (done) => {
+    it("Should get valid whitelist", done => {
       const expectedWhiteList = [
         {
           clientName: "some name",
           loginUrl: "http://login.url.com",
-          patterns: ["http://login.url.com"],
-        },
+          patterns: ["http://login.url.com"]
+        }
       ];
       storage.data.whiteList = expectedWhiteList;
       request(app)

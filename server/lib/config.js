@@ -1,1 +1,1 @@
-module.exports = require('auth0-extension-tools').config();
+module.exports = require("auth0-extension-tools").config();

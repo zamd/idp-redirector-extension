@@ -13,25 +13,25 @@ const Auth0ExentionToolsStub = {
     managementApiClient: () => (req, res, next) => {
       req.auth0 = Auth0ClientStub;
       next();
-    },
-  },
+    }
+  }
 };
 
 const config = require("../../server/lib/config");
 const index = proxyquire("../../server/routes/index", {
-  "auth0-extension-express-tools": Auth0ExentionToolsStub,
+  "auth0-extension-express-tools": Auth0ExentionToolsStub
 });
 
 describe("#idp-redirector", () => {
   const defaultConfig = require("../../server/config.json");
-  config.setProvider((key) => defaultConfig[key], null);
+  config.setProvider(key => defaultConfig[key], null);
 
   const storage = {
     read: () => Promise.resolve(storage.data),
-    write: (data) => {
+    write: data => {
       storage.data = data;
       return Promise.resolve();
-    },
+    }
   };
 
   const app = express();
@@ -45,33 +45,33 @@ describe("#idp-redirector", () => {
             patternRaw: "https://url1.com/withPath",
             endsWithWildcard: true,
             clientName: "client name",
-            loginUrl: "https://url1.com/login",
+            loginUrl: "https://url1.com/login"
           },
           {
             patternRaw: "https://url1.com",
             endsWithWildcard: false,
             clientName: "client name",
-            loginUrl: "https://url1.com/login",
-          },
+            loginUrl: "https://url1.com/login"
+          }
         ],
         "https://url2.com": [
           {
             patternRaw: "https://url2.com?",
             endsWithWildcard: true,
-            clientName: "client 2",
-          },
-        ],
-      },
+            clientName: "client 2"
+          }
+        ]
+      }
     };
   });
 
   describe("GET /", () => {
-    it("should redirect to loginUrl with correct parameters", (done) => {
+    it("should redirect to loginUrl with correct parameters", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
       request(app)
         .get("/")
         .query({
-          state: targetUrl,
+          state: targetUrl
         })
         .send()
         .expect(302)
@@ -93,14 +93,14 @@ describe("#idp-redirector", () => {
         });
     });
 
-    it("should redirect to loginUrl with error & error_description", (done) => {
+    it("should redirect to loginUrl with error & error_description", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
       request(app)
         .get("/")
         .query({
           state: targetUrl,
           error: "invalid_client",
-          error_description: "invalid client",
+          error_description: "invalid client"
         })
         .send()
         .expect(302)
@@ -129,11 +129,11 @@ describe("#idp-redirector", () => {
         });
     });
 
-    it("should redirect to /error when state url doesn't match whitelist", (done) => {
+    it("should redirect to /error when state url doesn't match whitelist", done => {
       request(app)
         .get("/")
         .query({
-          state: "https://example.com/login/callback",
+          state: "https://example.com/login/callback"
         })
         .send()
         .expect(302)
@@ -161,16 +161,16 @@ describe("#idp-redirector", () => {
       global = {};
     });
 
-    it("should load error_page from tenant settings", (done) => {
+    it("should load error_page from tenant settings", done => {
       request(app)
         .get("/error")
         .send()
-        .end((err, res) => {
+        .end(err => {
           if (err) return done(err);
 
           sinon.assert.calledOnce(getTenantSettingsStub);
           sinon.assert.calledWith(getTenantSettingsStub, {
-            fields: "error_page",
+            fields: "error_page"
           });
           done();
         });
@@ -181,20 +181,20 @@ describe("#idp-redirector", () => {
         await request(app)
           .get("/error")
           .query({
-            error,
+            error
           })
           .end();
       }
       sinon.assert.calledOnce(getTenantSettingsStub);
     });
 
-    it("should redirect to tenant error_page with querystring params", (done) => {
+    it("should redirect to tenant error_page with querystring params", done => {
       request(app)
         .get("/error")
         .query({
           error: "invalid_host",
           iss: "http://example.auth0.com",
-          target_link_uri: "https://example.com",
+          target_link_uri: "https://example.com"
         })
         .send()
         .expect(302)

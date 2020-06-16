@@ -1,9 +1,9 @@
-const { Router } = require('express');
-const Joi = require('joi');
-const { URL } = require('url');
+const { Router } = require("express");
+const Joi = require("joi");
+const { URL } = require("url");
 
-const logger = require('../lib/logger');
-const jwtAuthz = require('express-jwt-authz');
+const logger = require("../lib/logger");
+const jwtAuthz = require("express-jwt-authz");
 
 module.exports = (storage) => {
   const api = Router();
@@ -14,8 +14,8 @@ module.exports = (storage) => {
     data.hostToPattern = hostToPattern;
     try {
       await storage.write(data);
-      logger.info('Whitelist updated');
-    } catch(e) {
+      logger.info("Whitelist updated");
+    } catch (e) {
       // TODO: Do we want to try again, or should we just throw an error here?
       // if (e.code === 409) return await writeToStorage(whiteList);
       logger.error(`Error trying to write to storage: ${e.message}`, e);
@@ -28,13 +28,15 @@ module.exports = (storage) => {
   const clientPatternSchema = Joi.object().keys({
     clientName: Joi.string().min(1).max(200).required(),
     loginUrl: urlSchema.optional(),
-    patterns: Joi.array().items(urlSchema.regex(/^[^\*]*\*?$/).required()).min(1).required(),
+    patterns: Joi.array()
+      .items(urlSchema.regex(/^[^\*]*\*?$/).required())
+      .min(1)
+      .required(),
   });
 
   const patternSchema = Joi.array().items(clientPatternSchema);
 
-  api.put("/",
-    jwtAuthz([ 'update:patterns' ]), async (req, res) => {
+  api.put("/", jwtAuthz(["update:patterns"]), async (req, res) => {
     const whiteList = req.body;
     const hostToPattern = {};
 
@@ -42,30 +44,38 @@ module.exports = (storage) => {
       const { error: joiError } = await Joi.validate(whiteList, patternSchema);
       if (joiError) throw new Error(decodeURI(joiError));
 
-      whiteList.forEach(clientPattern => {
+      whiteList.forEach((clientPattern) => {
         if (clientPattern.loginUrl) {
           try {
             new URL(clientPattern.loginUrl); // validating the URL format since Joi doesn't really support this
-          } catch(e) {
-            throw new Error(`loginUrl must be in the format of a URL: ${clientPattern.loginUrl}`);
+          } catch (e) {
+            throw new Error(
+              `loginUrl must be in the format of a URL: ${clientPattern.loginUrl}`
+            );
           }
         }
-        clientPattern.patterns.forEach(pattern => {
+        clientPattern.patterns.forEach((pattern) => {
           const endsWithWildcard = pattern.endsWith("*");
           let patternUrl = null;
-          const patternRaw = endsWithWildcard ? pattern.substr(0,pattern.length - 1) : pattern;
+          const patternRaw = endsWithWildcard
+            ? pattern.substr(0, pattern.length - 1)
+            : pattern;
           try {
             patternUrl = new URL(patternRaw);
-          } catch(e) {
+          } catch (e) {
             logger.error(`Bad pattern: ${pattern}, ${patternRaw}`, e);
-            throw new Error(`pattern must be in the format of a URL: ${pattern}`);
+            throw new Error(
+              `pattern must be in the format of a URL: ${pattern}`
+            );
           }
 
-          const base = patternUrl.protocol + '//' + patternUrl.host;
+          const base = patternUrl.protocol + "//" + patternUrl.host;
 
           if (patternRaw === base && endsWithWildcard) {
             // can't end host with a wildcard
-            throw new Error(`pattern can not have a wildcard as part of the hostname: ${pattern}`);
+            throw new Error(
+              `pattern can not have a wildcard as part of the hostname: ${pattern}`
+            );
           }
 
           if (!hostToPattern.hasOwnProperty(base)) {
@@ -80,39 +90,38 @@ module.exports = (storage) => {
 
           if (clientPattern.loginUrl) {
             newPattern.loginUrl = clientPattern.loginUrl;
-
           }
           hostToPattern[base].push(newPattern);
         });
       });
-    } catch(e) {
+    } catch (e) {
       logger.error(`Failed attempt to update whitelist: ${e.message}`);
-      return res
-        .status(400)
-        .json({
-          error: 'invalid_request',
-          error_description: e.message
-        });
+      return res.status(400).json({
+        error: "invalid_request",
+        error_description: e.message,
+      });
     }
 
     try {
       await writeToStorage(whiteList, hostToPattern);
 
       return res.status(200).json(whiteList);
-    } catch(e) {
-      if (e.code === 409) return res.status(409).json({
-        error: 'update_conflict',
-        error_description: 'Can not override conflicting update, ensure you have the latest data and retry'
-      });
+    } catch (e) {
+      if (e.code === 409)
+        return res.status(409).json({
+          error: "update_conflict",
+          error_description:
+            "Can not override conflicting update, ensure you have the latest data and retry",
+        });
 
       return res.status(500).json({
-        error: 'internal_error',
-        error_description: 'Internal Server Error'
+        error: "internal_error",
+        error_description: "Internal Server Error",
       });
     }
   });
 
-  api.get("/", jwtAuthz([ 'read:patterns' ]), (req, res) => {
+  api.get("/", jwtAuthz(["read:patterns"]), (req, res) => {
     logger.info("reading data");
     storage.read().then((data) => {
       res.json(data.whiteList);

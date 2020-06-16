@@ -56,7 +56,6 @@ module.exports = (storage) => {
     }
   });
 
-  //TODO: optimize by moving ensureAuth0ApiClient to /error handler
   index.get("/", (req, res) => {
     const state = req.query.state;
     if (!state) {
@@ -76,8 +75,8 @@ module.exports = (storage) => {
 
       if (!patterns) {
         return redirectToErrorPage(req, res, {
-          error: "invalid_request",
-          error_description: `state must for a valid host: ${state}`,
+          error: "invalid_host",
+          error_description: `Invalid host in state url: ${state}`,
         });
       }
 

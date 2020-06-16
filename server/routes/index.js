@@ -46,13 +46,22 @@ module.exports = (storage) => {
   };
 
   index.get("/error", ensureAuth0ApiClient(), async (req, res) => {
+    const getErrorDescription = ({ error, error_description }) => {
+      return {
+        error,
+        error_description,
+      };
+    };
+
     try {
       const url = new URL(await getErrorPageFromTenantSettings(req));
       url.search = querystring.stringify(req.query);
       res.redirect(url.href);
     } catch (error) {
       logger.error("Invalid custom error_page url.", error);
-      res.status(500).send("Invalid custom error_page url.");
+      res
+        .status(400)
+        .send(JSON.stringify(getErrorDescription(req.query), null, 2));
     }
   });
 

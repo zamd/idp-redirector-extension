@@ -1,11 +1,9 @@
 const { Router } = require("express");
 const Joi = require("joi");
-const url = require("url");
+const { URL } = require("url");
 
 const logger = require("../lib/logger");
 const jwtAuthz = require("express-jwt-authz");
-
-const URL = url.URL;
 
 module.exports = storage => {
   const api = new Router();
@@ -54,7 +52,7 @@ module.exports = storage => {
       whiteList.forEach(clientPattern => {
         if (clientPattern.loginUrl) {
           try {
-            url.parse(clientPattern.loginUrl); // validating the URL format since Joi doesn't really support this
+            new URL(clientPattern.loginUrl); // validating the URL format since Joi doesn't really support this
           } catch (e) {
             throw new Error(
               `loginUrl must be in the format of a URL: ${clientPattern.loginUrl}`

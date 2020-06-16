@@ -1,6 +1,9 @@
+const nock = require("nock");
+const querystring = require("querystring");
+const jwt = require("jsonwebtoken");
 const { expect } = require("chai");
 const { URL } = require("url");
-const request = require("supertest");
+const { agent } = require("supertest");
 const { describe, it, before, beforeEach } = require("mocha");
 const Promise = require("bluebird");
 const express = require("express");
@@ -22,7 +25,7 @@ const index = proxyquire("../../server/routes/index", {
   "auth0-extension-express-tools": Auth0ExentionToolsStub
 });
 
-describe("#idp-redirector", () => {
+describe("#idp-redirector", async () => {
   const defaultConfig = require("../../server/config.json");
   config.setProvider(key => defaultConfig[key], null);
 
@@ -36,6 +39,13 @@ describe("#idp-redirector", () => {
 
   const app = express();
   app.use("/", index(storage));
+  const port = defaultConfig.PORT || 3010;
+  const request = agent(app.listen(port));
+  const baseUri = `http://127.0.0.1:${port}`;
+
+  let goodCode, badCode;
+  const exampleUserId = "someuserid";
+  const issuer = `https://${defaultConfig.AUTH0_DOMAIN}`;
 
   before(() => {
     storage.data = {
@@ -66,12 +76,52 @@ describe("#idp-redirector", () => {
   });
 
   describe("GET /", () => {
+    beforeEach(() => {
+      goodCode = "goodcode";
+      badCode = "badcode";
+
+      nock(issuer)
+        .post("/oauth/token", {
+          grant_type: "authorization_code",
+          client_id: defaultConfig.CLIENT_ID,
+          client_secret: defaultConfig.CLIENT_SECRET,
+          redirect_uri: baseUri + "/",
+          code: goodCode
+        })
+        .reply(200, {
+          id_token: jwt.sign(
+            {
+              sub: exampleUserId,
+              aud: defaultConfig.CLIENT_ID,
+              iss: issuer,
+              iat: Date.now(),
+              exp: Date.now() + 3600
+            },
+            "shhhhh"
+          )
+        });
+
+      nock(issuer)
+        .post("/oauth/token", {
+          grant_type: "authorization_code",
+          client_id: defaultConfig.CLIENT_ID,
+          client_secret: defaultConfig.CLIENT_SECRET,
+          redirect_uri: baseUri + "/",
+          code: badCode
+        })
+        .reply(403, {
+          error: "invalid_grant",
+          error_description: "Invalid authorization code"
+        });
+    });
+
     it("should redirect to loginUrl with correct parameters", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request(app)
+      request
         .get("/")
         .query({
-          state: targetUrl
+          state: targetUrl,
+          code: goodCode
         })
         .send()
         .expect(302)
@@ -95,7 +145,7 @@ describe("#idp-redirector", () => {
 
     it("should redirect to loginUrl with error & error_description", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request(app)
+      request
         .get("/")
         .query({
           state: targetUrl,
@@ -130,7 +180,7 @@ describe("#idp-redirector", () => {
     });
 
     it("should redirect to /error when state url doesn't match whitelist", done => {
-      request(app)
+      request
         .get("/")
         .query({
           state: "https://example.com/login/callback"
@@ -144,6 +194,60 @@ describe("#idp-redirector", () => {
 
           expect(target.pathname).to.equal("/error");
           expect(target.searchParams.get("error")).to.be.equal("invalid_host");
+
+          done();
+        });
+    });
+
+    it("should redirect to /error when we use a bad code", done => {
+      const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+      request
+        .get("/")
+        .query({
+          state: targetUrl,
+          code: badCode
+        })
+        .send()
+        .expect(302)
+        .end((err, res) => {
+          if (err) return done(err);
+
+          const target = new URL(res.headers["location"], "https://x.com");
+
+          expect(target.pathname).to.equal("/error");
+          expect(target.searchParams.get("error")).to.be.equal(
+            "invalid_request"
+          );
+          expect(target.searchParams.get("error_description")).to.be.equal(
+            "Invalid code"
+          );
+
+          done();
+        });
+    });
+
+    it("should redirect to /error when oauth token fails with 500", done => {
+      const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+      request
+        .get("/")
+        .query({
+          state: targetUrl,
+          code: "some code without a nock"
+        })
+        .send()
+        .expect(302)
+        .end((err, res) => {
+          if (err) return done(err);
+
+          const target = new URL(res.headers["location"], "https://x.com");
+
+          expect(target.pathname).to.equal("/error");
+          expect(target.searchParams.get("error")).to.be.equal(
+            "internal_error"
+          );
+          expect(target.searchParams.get("error_description")).to.be.equal(
+            "Internal Server Error"
+          );
 
           done();
         });
@@ -162,7 +266,7 @@ describe("#idp-redirector", () => {
     });
 
     it("should load error_page from tenant settings", done => {
-      request(app)
+      request
         .get("/error")
         .send()
         .end(err => {
@@ -178,7 +282,7 @@ describe("#idp-redirector", () => {
 
     it("should cache tenant error_page in global", async () => {
       for (const error of ["invalid_host", "invalid_request", "bad_request"]) {
-        await request(app)
+        await request
           .get("/error")
           .query({
             error
@@ -189,7 +293,7 @@ describe("#idp-redirector", () => {
     });
 
     it("should redirect to tenant error_page with querystring params", done => {
-      request(app)
+      request
         .get("/error")
         .query({
           error: "invalid_host",

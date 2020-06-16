@@ -9,7 +9,8 @@ const config = require("../../server/lib/config");
 const api = require("../../server/routes/api");
 
 describe("#idp-redirector", () => {
-  config.setProvider(config, null);
+  const defaultConfig = require("../../server/config.json");
+  config.setProvider(key => defaultConfig[key], null);
 
   const storage = {
     read: () => Promise.resolve(storage.data),
@@ -125,7 +126,7 @@ describe("#idp-redirector", () => {
             patterns: ["https://example.com/path*/somethingelse"]
           }
         ],
-        'ValidationError: "value" at position 0 fails because [child "patterns" fails because ["patterns" at position 0 fails because ["0" with value "https:&#x2f;&#x2f;example.com&#x2f;path&#x2a;&#x2f;somethingelse" fails to match the required pattern: /^[^\\*]*\\*?$/]]]'
+        'ValidationError: "value" at position 0 fails because [child "patterns" fails because ["patterns" at position 0 fails because ["0" with value "https:&#x2f;&#x2f;example.com&#x2f;path&#x2a;&#x2f;somethingelse" fails to match the required pattern: /^[^*]*\\*?$/]]]'
       )
     );
 

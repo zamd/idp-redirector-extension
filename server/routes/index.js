@@ -1,3 +1,5 @@
+const axios = require("axios");
+const jwt = require("jsonwebtoken");
 const { Router } = require("express");
 const { middlewares } = require("auth0-extension-express-tools");
 const { URL } = require("url");
@@ -63,7 +65,8 @@ module.exports = storage => {
     }
   });
 
-  index.get("/", (req, res) => {
+  index.get("/", async (req, res) => {
+    req.query = req.query || {}; // defensive set of query
     const state = req.query.state;
     if (!state) {
       return redirectToErrorPage(req, res, {
@@ -117,10 +120,52 @@ module.exports = storage => {
       });
     }
 
-    const errorParams = {};
-    if (req.query && req.query.error) errorParams.error = req.query.error;
-    if (req.query && req.query.error_description) {
-      errorParams.error_description = req.query.error_description;
+    let errorParams = {};
+    if (req.query.error || req.query.error_description) {
+      errorParams = {
+        error: req.query.error,
+        error_description: req.query.error_description
+      };
+    } else if (!req.query.code) {
+      return redirectToErrorPage(req, res, {
+        error: "invalid_request",
+        error_description: "missing required parameter: code"
+      });
+    } else {
+      try {
+        const hostPath = `${req.protocol}://${req.get("host")}`;
+        const fullUrl = new URL(hostPath + req.originalUrl);
+        const redirect_uri = hostPath + fullUrl.pathname;
+        const response = await axios.post(
+          `https://${config("AUTH0_DOMAIN")}/oauth/token`,
+          {
+            grant_type: "authorization_code",
+            client_id: config("CLIENT_ID"),
+            client_secret: config("CLIENT_SECRET"),
+            redirect_uri,
+            code: req.query.code
+          }
+        );
+
+        const idToken = response.data && response.data.id_token;
+        const claims = jwt.decode(idToken);
+        logger.info(
+          `Successful redirect to ${loginUrl} for ${claims.sub}, state ${state}`
+        );
+      } catch (e) {
+        logger.error(`Error attempting to exchange code: ${e.message}`, e);
+        const error = {
+          error: "internal_error",
+          error_description: "Internal Server Error"
+        };
+
+        if (e.response && e.response.status === 403) {
+          error.error = "invalid_request";
+          error.error_description = "Invalid code";
+        }
+
+        return redirectToErrorPage(req, res, error);
+      }
     }
 
     const redirectUrl = new URL(loginUrl);

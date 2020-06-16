@@ -110,10 +110,16 @@ module.exports = (storage) => {
       });
     }
 
-    const redirectUrl = new URL(loginUrl); // Already checking this is a valid url above
+    const errorParams = {};
+    if (req.query && req.query.error) errorParams.error = req.query.error;
+    if (req.query && req.query.error_description)
+      errorParams.error_description = req.query.error_description;
+
+    const redirectUrl = new URL(loginUrl);
     redirectUrl.search = querystring.stringify({
       iss: `https://${config("AUTH0_DOMAIN")}`,
       target_link_uri: state,
+      ...errorParams,
     });
     logger.info(`Redirecting to ${redirectUrl.href}`);
     res.redirect(redirectUrl.href);

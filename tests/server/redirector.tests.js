@@ -93,6 +93,42 @@ describe("#idp-redirector", () => {
         });
     });
 
+    it("should redirect to loginUrl with error & error_description", (done) => {
+      const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+      request(app)
+        .get("/")
+        .query({
+          state: targetUrl,
+          error: "invalid_client",
+          error_description: "invalid client",
+        })
+        .send()
+        .expect(302)
+        .end((err, res) => {
+          if (err) return done(err);
+
+          const target = new URL(res.headers["location"]);
+
+          expect(target.origin).to.equal("https://url1.com");
+          expect(target.pathname).to.equal("/login");
+          expect(target.searchParams.get("target_link_uri")).to.be.equal(
+            targetUrl
+          );
+          expect(target.searchParams.get("iss")).to.be.equal(
+            `https://${config("AUTH0_DOMAIN")}`
+          );
+
+          expect(target.searchParams.get("error")).to.be.equal(
+            "invalid_client"
+          );
+          expect(target.searchParams.get("error_description")).to.be.equal(
+            "invalid client"
+          );
+
+          done();
+        });
+    });
+
     it("should redirect to /error when state url doesn't match whitelist", (done) => {
       request(app)
         .get("/")

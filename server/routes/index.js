@@ -42,7 +42,7 @@ module.exports = (storage) => {
       ...errorInfo,
     };
     logger.error("Error: ", queryParams);
-    res.redirect(`/error?${querystring.stringify(queryParams)}`);
+    res.redirect(`error?${querystring.stringify(queryParams)}`);
   };
 
   index.get("/error", ensureAuth0ApiClient(), async (req, res) => {

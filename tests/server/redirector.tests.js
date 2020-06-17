@@ -1,5 +1,4 @@
 const nock = require("nock");
-const querystring = require("querystring");
 const jwt = require("jsonwebtoken");
 const { expect } = require("chai");
 const { URL } = require("url");
@@ -40,7 +39,8 @@ describe("#idp-redirector", async () => {
   const app = express();
   app.use("/", index(storage));
   const port = defaultConfig.PORT || 3010;
-  const request = agent(app.listen(port));
+  const server = app.listen(port);
+  const request = agent(server);
   const baseUri = `http://127.0.0.1:${port}`;
 
   let goodCode, badCode;
@@ -75,6 +75,10 @@ describe("#idp-redirector", async () => {
     };
   });
 
+  after(() => {
+    return server.close();
+  });
+
   describe("GET /", () => {
     beforeEach(() => {
       goodCode = "goodcode";
@@ -83,8 +87,8 @@ describe("#idp-redirector", async () => {
       nock(issuer)
         .post("/oauth/token", {
           grant_type: "authorization_code",
-          client_id: defaultConfig.CLIENT_ID,
-          client_secret: defaultConfig.CLIENT_SECRET,
+          client_id: defaultConfig.AUTH0_CLIENT_ID,
+          client_secret: defaultConfig.AUTH0_CLIENT_SECRET,
           redirect_uri: baseUri + "/",
           code: goodCode
         })
@@ -92,7 +96,7 @@ describe("#idp-redirector", async () => {
           id_token: jwt.sign(
             {
               sub: exampleUserId,
-              aud: defaultConfig.CLIENT_ID,
+              aud: defaultConfig.AUTH0_CLIENT_ID,
               iss: issuer,
               iat: Date.now(),
               exp: Date.now() + 3600
@@ -104,8 +108,8 @@ describe("#idp-redirector", async () => {
       nock(issuer)
         .post("/oauth/token", {
           grant_type: "authorization_code",
-          client_id: defaultConfig.CLIENT_ID,
-          client_secret: defaultConfig.CLIENT_SECRET,
+          client_id: defaultConfig.AUTH0_CLIENT_ID,
+          client_secret: defaultConfig.AUTH0_CLIENT_SECRET,
           redirect_uri: baseUri + "/",
           code: badCode
         })

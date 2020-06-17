@@ -142,14 +142,13 @@ module.exports = storage => {
         const redirect_uri = hostPath + fullUrl.pathname;
         const response = await axios.post(
           `https://${config("AUTH0_DOMAIN")}/oauth/token`,
-          querystring.stringify({
+          {
             grant_type: "authorization_code",
             client_id: config("AUTH0_CLIENT_ID"),
             client_secret: config("AUTH0_CLIENT_SECRET"),
             redirect_uri,
-            scope: "openid",
             code: req.query.code
-          })
+          }
         );
 
         const idToken = response.data && response.data.id_token;

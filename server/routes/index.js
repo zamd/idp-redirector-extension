@@ -152,9 +152,7 @@ module.exports = storage => {
       });
     } else {
       try {
-        const hostPath = `${req.protocol}://${req.get("host")}`;
-        const fullUrl = new URL(hostPath + req.originalUrl);
-        const redirect_uri = hostPath + fullUrl.pathname;
+        const redirect_uri = config("PUBLIC_WT_URL");
         const response = await axios.post(
           `https://${config("AUTH0_DOMAIN")}/oauth/token`,
           {

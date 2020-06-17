@@ -2,7 +2,7 @@ const nock = require("nock");
 const jwt = require("jsonwebtoken");
 const { expect } = require("chai");
 const { URL } = require("url");
-const { agent } = require("supertest");
+const request = require("supertest");
 const { describe, it, before, beforeEach } = require("mocha");
 const Promise = require("bluebird");
 const express = require("express");
@@ -26,6 +26,8 @@ const index = proxyquire("../../server/routes/index", {
 
 describe("#idp-redirector", async () => {
   const defaultConfig = require("../../server/config.json");
+  defaultConfig["PUBLIC_WT_URL"] =
+    defaultConfig["PUBLIC_WT_URL"] || "https://test.webtask.com";
   config.setProvider(key => defaultConfig[key], null);
 
   const storage = {
@@ -38,10 +40,7 @@ describe("#idp-redirector", async () => {
 
   const app = express();
   app.use("/", index(storage));
-  const port = defaultConfig.PORT || 3010;
-  const server = app.listen(port);
-  const request = agent(server);
-  const baseUri = `http://127.0.0.1:${port}`;
+  const baseUri = config("PUBLIC_WT_URL");
 
   let goodCode, badCode;
   const exampleUserId = "someuserid";
@@ -87,10 +86,6 @@ describe("#idp-redirector", async () => {
     global = {};
   });
 
-  after(() => {
-    return server.close();
-  });
-
   describe("GET /", () => {
     beforeEach(() => {
       goodCode = "goodcode";
@@ -101,7 +96,7 @@ describe("#idp-redirector", async () => {
           grant_type: "authorization_code",
           client_id: defaultConfig.AUTH0_CLIENT_ID,
           client_secret: defaultConfig.AUTH0_CLIENT_SECRET,
-          redirect_uri: baseUri + "/",
+          redirect_uri: baseUri,
           code: goodCode
         })
         .reply(200, {
@@ -122,7 +117,7 @@ describe("#idp-redirector", async () => {
           grant_type: "authorization_code",
           client_id: defaultConfig.AUTH0_CLIENT_ID,
           client_secret: defaultConfig.AUTH0_CLIENT_SECRET,
-          redirect_uri: baseUri + "/",
+          redirect_uri: baseUri,
           code: badCode
         })
         .reply(403, {
@@ -133,7 +128,7 @@ describe("#idp-redirector", async () => {
 
     it("should redirect to loginUrl with correct parameters", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request
+      request(app)
         .get("/")
         .query({
           state: targetUrl,
@@ -161,7 +156,7 @@ describe("#idp-redirector", async () => {
 
     it("should redirect to loginUrl with error & error_description", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request
+      request(app)
         .get("/")
         .query({
           state: targetUrl,
@@ -196,7 +191,7 @@ describe("#idp-redirector", async () => {
     });
 
     it("should redirect to /error when state url doesn't match whitelist", done => {
-      request
+      request(app)
         .get("/")
         .query({
           state: "https://example.com/login/callback"
@@ -218,7 +213,7 @@ describe("#idp-redirector", async () => {
 
     it("should redirect to /error when we use a bad code", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request
+      request(app)
         .get("/")
         .query({
           state: targetUrl,
@@ -246,7 +241,7 @@ describe("#idp-redirector", async () => {
 
     it("should redirect to /error when oauth token fails with 500", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request
+      request(app)
         .get("/")
         .query({
           state: targetUrl,
@@ -275,7 +270,7 @@ describe("#idp-redirector", async () => {
 
   describe("GET / with errors", () => {
     it("should load error_page from tenant settings", done => {
-      request
+      request(app)
         .get("/?state=bad")
         .send()
         .end(err => {
@@ -291,7 +286,7 @@ describe("#idp-redirector", async () => {
 
     it("should cache tenant error_page in global", async () => {
       for (const error of ["invalid_host", "invalid_request", "bad_request"]) {
-        await request
+        await request(app)
           .get("/?state=bad")
           .query({
             error

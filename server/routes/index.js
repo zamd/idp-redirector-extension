@@ -46,6 +46,10 @@ module.exports = storage => {
     res.redirect(`error?${querystring.stringify(queryParams)}`);
   };
 
+  index.get("/defaultError", (req, res) => {
+    res.json(req.query);
+  });
+
   index.get("/error", ensureAuth0ApiClient(), async (req, res) => {
     // eslint-disable-next-line camelcase
     const getErrorDescription = ({ error, error_description }) => ({
@@ -138,13 +142,14 @@ module.exports = storage => {
         const redirect_uri = hostPath + fullUrl.pathname;
         const response = await axios.post(
           `https://${config("AUTH0_DOMAIN")}/oauth/token`,
-          {
+          querystring.stringify({
             grant_type: "authorization_code",
-            client_id: config("CLIENT_ID"),
-            client_secret: config("CLIENT_SECRET"),
+            client_id: config("AUTH0_CLIENT_ID"),
+            client_secret: config("AUTH0_CLIENT_SECRET"),
             redirect_uri,
+            scope: "openid",
             code: req.query.code
-          }
+          })
         );
 
         const idToken = response.data && response.data.id_token;
@@ -153,7 +158,7 @@ module.exports = storage => {
           `Successful redirect to ${loginUrl} for ${claims.sub}, state ${state}`
         );
       } catch (e) {
-        logger.error(`Error attempting to exchange code: ${e.message}`, e);
+        logger.error(`Error attempting to exchange code: ${e.message}`);
         const error = {
           error: "internal_error",
           error_description: "Internal Server Error"

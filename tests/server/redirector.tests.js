@@ -47,6 +47,13 @@ describe("#idp-redirector", async () => {
   const exampleUserId = "someuserid";
   const issuer = `https://${defaultConfig.AUTH0_DOMAIN}`;
 
+  const errorPageUrl = "https://error.page";
+
+  const getTenantSettingsStub = sinon
+    .stub()
+    .resolves({ error_page: { url: errorPageUrl } });
+  Auth0ClientStub = { getTenantSettings: getTenantSettingsStub };
+
   before(() => {
     storage.data = {
       hostToPattern: {
@@ -73,6 +80,11 @@ describe("#idp-redirector", async () => {
         ]
       }
     };
+  });
+
+  beforeEach(() => {
+    sinon.resetHistory();
+    global = {};
   });
 
   after(() => {
@@ -196,7 +208,8 @@ describe("#idp-redirector", async () => {
 
           const target = new URL(res.headers["location"], "https://x.com");
 
-          expect(target.pathname).to.equal("/error");
+          expect(target.origin).to.equal(errorPageUrl);
+          expect(target.pathname).to.equal("/");
           expect(target.searchParams.get("error")).to.be.equal("invalid_host");
 
           done();
@@ -218,7 +231,8 @@ describe("#idp-redirector", async () => {
 
           const target = new URL(res.headers["location"], "https://x.com");
 
-          expect(target.pathname).to.equal("/error");
+          expect(target.origin).to.equal(errorPageUrl);
+          expect(target.pathname).to.equal("/");
           expect(target.searchParams.get("error")).to.be.equal(
             "invalid_request"
           );
@@ -245,7 +259,8 @@ describe("#idp-redirector", async () => {
 
           const target = new URL(res.headers["location"], "https://x.com");
 
-          expect(target.pathname).to.equal("/error");
+          expect(target.origin).to.equal(errorPageUrl);
+          expect(target.pathname).to.equal("/");
           expect(target.searchParams.get("error")).to.be.equal(
             "internal_error"
           );
@@ -258,20 +273,10 @@ describe("#idp-redirector", async () => {
     });
   });
 
-  describe("GET /error", () => {
-    const getTenantSettingsStub = sinon
-      .stub()
-      .resolves({ error_page: { url: "https://error.page" } });
-    Auth0ClientStub = { getTenantSettings: getTenantSettingsStub };
-
-    beforeEach(() => {
-      sinon.resetHistory();
-      global = {};
-    });
-
+  describe("GET / with errors", () => {
     it("should load error_page from tenant settings", done => {
       request
-        .get("/error")
+        .get("/?state=bad")
         .send()
         .end(err => {
           if (err) return done(err);
@@ -287,41 +292,13 @@ describe("#idp-redirector", async () => {
     it("should cache tenant error_page in global", async () => {
       for (const error of ["invalid_host", "invalid_request", "bad_request"]) {
         await request
-          .get("/error")
+          .get("/?state=bad")
           .query({
             error
           })
           .end();
       }
       sinon.assert.calledOnce(getTenantSettingsStub);
-    });
-
-    it("should redirect to tenant error_page with querystring params", done => {
-      request
-        .get("/error")
-        .query({
-          error: "invalid_host",
-          iss: "http://example.auth0.com",
-          target_link_uri: "https://example.com"
-        })
-        .send()
-        .expect(302)
-        .end((err, res) => {
-          if (err) return done(err);
-
-          const target = new URL(res.headers["location"]);
-
-          expect(target.origin).to.equal("https://error.page");
-          expect(target.searchParams.get("error")).to.be.equal("invalid_host");
-          expect(target.searchParams.get("iss")).to.be.equal(
-            "http://example.auth0.com"
-          );
-          expect(target.searchParams.get("target_link_uri")).to.be.equal(
-            "https://example.com"
-          );
-
-          done();
-        });
     });
   });
 });

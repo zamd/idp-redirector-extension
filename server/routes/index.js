@@ -35,6 +35,7 @@ module.exports = storage => {
       clientId: config("AUTH0_CLIENT_ID"),
       clientSecret: config("AUTH0_CLIENT_SECRET")
     });
+
   const redirectToErrorPage = (req, res, errorInfo) => {
     const queryParams = {
       client_id: "",
@@ -43,30 +44,44 @@ module.exports = storage => {
       ...errorInfo
     };
     logger.error("Error: ", queryParams);
-    res.redirect(`error?${querystring.stringify(queryParams)}`);
+    // res.redirect(`error?${querystring.stringify(queryParams)}`);
+
+    ensureAuth0ApiClient()(req, res, async err => {
+      if (err) {
+        logger.error("Couldn't get management API client.", err);
+        return res.status(500).send(
+          JSON.stringify(
+            {
+              error: "internal_error",
+              error_description: "Internal Server Error"
+            },
+            null,
+            2
+          )
+        );
+      }
+      try {
+        const url = new URL(await getErrorPageFromTenantSettings(req));
+        url.search = querystring.stringify(queryParams);
+        return res.redirect(url.href);
+      } catch (error) {
+        logger.error("Invalid custom error_page url.", error);
+        return res.status(500).send(
+          JSON.stringify(
+            {
+              error: "internal_error",
+              error_description: "Internal Server Error"
+            },
+            null,
+            2
+          )
+        );
+      }
+    });
   };
 
   index.get("/defaultError", (req, res) => {
     res.json(req.query);
-  });
-
-  index.get("/error", ensureAuth0ApiClient(), async (req, res) => {
-    // eslint-disable-next-line camelcase
-    const getErrorDescription = ({ error, error_description }) => ({
-      error,
-      error_description
-    });
-
-    try {
-      const url = new URL(await getErrorPageFromTenantSettings(req));
-      url.search = querystring.stringify(req.query);
-      res.redirect(url.href);
-    } catch (error) {
-      logger.error("Invalid custom error_page url.", error);
-      res
-        .status(400)
-        .send(JSON.stringify(getErrorDescription(req.query), null, 2));
-    }
   });
 
   index.get("/", async (req, res) => {

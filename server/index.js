@@ -38,7 +38,7 @@ module.exports = (cfg, storageProvider) => {
       stream: logger.stream
     })
   );
-  app.use(bodyParser.json());
+  app.use(bodyParser.json({ limit: "500kb" }));
   app.use(bodyParser.urlencoded({ extended: false }));
 
   const jwtCheck = jwt({

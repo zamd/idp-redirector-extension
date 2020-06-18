@@ -12,11 +12,11 @@ function generateSamlResponse(context, ee, next) {
     id: generateUserId(),
     name: {
       givenName: `user${rid}`,
-      familyName: `${rid}f`,
+      familyName: `${rid}f`
     },
     groups: ["PowerUsers", "Admins", "SysAdmins"],
     address: `Street ${rid}`,
-    emails: [`${generateUserId()}${rid}@example.com`],
+    emails: [`${generateUserId()}${rid}@example.com`]
   };
 
   samlp.getSamlResponse(
@@ -26,10 +26,7 @@ function generateSamlResponse(context, ee, next) {
       destination: `https://${context.vars.$processEnvironment.DOMAIN}/login/callback?connection=${context.vars.$processEnvironment.CONNECTION}`,
       audience: `urn:auth0:${context.vars.$processEnvironment.TENANT}:${context.vars.$processEnvironment.CONNECTION}`,
       key: fs.readFileSync(context.vars.$processEnvironment.KEY_FILE, "utf-8"),
-      cert: fs.readFileSync(
-        context.vars.$processEnvironment.CERT_FILE,
-        "utf-8"
-      ),
+      cert: fs.readFileSync(context.vars.$processEnvironment.CERT_FILE, "utf-8")
     },
     randomUser,
     (err, saml) => {
@@ -42,7 +39,7 @@ function generateSamlResponse(context, ee, next) {
 }
 
 function init(context, ee, next) {
-  context.funcs.$getLoginUrl = function () {
+  context.funcs.$getLoginUrl = function() {
     const { a0Client } = context.vars;
     if (a0Client) {
       if (a0Client.loginUrl) return a0Client.loginUrl;
@@ -61,12 +58,12 @@ function init(context, ee, next) {
 
   context.vars.a0Client = {
     loginUrl: loginUrl,
-    relayState: relayStates[Math.floor(Math.random() * relayStates.length)],
+    relayState: relayStates[Math.floor(Math.random() * relayStates.length)]
   };
   next();
 }
 
 module.exports = {
   generateSamlResponse,
-  init,
+  init
 };

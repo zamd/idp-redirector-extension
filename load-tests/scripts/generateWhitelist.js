@@ -9,24 +9,24 @@ function generateRelayStates(patterns) {
   const paramName = customAlphabet("abcdefghijklmnopqrstuvwxyz", 4);
   const urlPart = customAlphabet("abcdefghijklmnopqrstuvwxyz", 10);
 
-  const generatePaths = (pattern) => [
+  const generatePaths = pattern => [
     `${pattern}/${urlPart()}`,
     `${pattern}/${urlPart()}/${urlPart()}`,
     `${pattern}/${urlPart()}/${urlPart()}/${urlPart()}`,
     `${pattern}/${urlPart()}/${urlPart()}/${urlPart()}/${urlPart()}`,
-    `${pattern}/${urlPart()}/${urlPart()}/${urlPart()}/${urlPart()}/${urlPart()}`,
+    `${pattern}/${urlPart()}/${urlPart()}/${urlPart()}/${urlPart()}/${urlPart()}`
   ];
 
-  const generateQuery = (pattern) => [
+  const generateQuery = pattern => [
     `${pattern}?${paramName()}=${urlPart()}`,
     `${pattern}?${paramName()}=${urlPart()}&${paramName()}=${urlPart()}`,
     `${pattern}?${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}`,
     `${pattern}?${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}`,
-    `${pattern}?${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}`,
+    `${pattern}?${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}&${paramName()}=${urlPart()}`
   ];
 
   return patterns
-    .map((pattern) => {
+    .map(pattern => {
       if (pattern.endsWith("/*"))
         return generatePaths(pattern.replace("/*", ""));
       if (pattern.endsWith("?*"))
@@ -46,16 +46,16 @@ function generateClients(requiredClients) {
     const patterns = [
       `https://${tld}.int.thomsonreuters.com`,
       `https://${tld}.int.thomsonreuters.com/*`,
-      `https://${tld}.int.thomsonreuters.com?*`,
+      `https://${tld}.int.thomsonreuters.com?*`
     ];
     const client = {
       clientName: `loadclient-${shortId()}`,
       loginUrl: `https://${tld}.int.thomsonreuters.com/login`,
       patterns: patterns,
-      relayStates: generateRelayStates(patterns),
+      relayStates: generateRelayStates(patterns)
     };
     // don't use loginUrl for 20% client
-    if (index % 5 == 0) delete client.loginUrl;
+    if (index % 5 === 0) delete client.loginUrl;
 
     clients.push(client);
   }
@@ -77,7 +77,7 @@ function generateDataFiles(generatedClients) {
 
   try {
     fs.writeFileSync(relayStatesFile, JSON.stringify(generatedClients), "utf8");
-    generatedClients.forEach((client) => delete client.relayStates);
+    generatedClients.forEach(client => delete client.relayStates);
     fs.writeFileSync(whilelistFile, JSON.stringify(generatedClients), "utf8");
   } catch (error) {
     debug("Error writing file %o", error);

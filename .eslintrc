@@ -14,18 +14,12 @@
     "plugin:prettier/recommended",
     "plugin:@a0/auth0-security/recommended"
   ],
-  "plugins": [
-    "@a0/auth0-security",
-    "prettier"
-  ],
+  "plugins": ["@a0/auth0-security", "prettier"],
   "rules": {
     "prettier/prettier": "error",
     "no-bitwise": 2,
     "eqeqeq": 2,
-    "wrap-iife": [
-      2,
-      "any"
-    ],
+    "wrap-iife": [2, "any"],
     "no-use-before-define": 2,
     "new-cap": 2,
     "no-caller": 2,
@@ -35,19 +29,12 @@
     "no-eval": 2,
     "dot-notation": 0,
     "no-unused-vars": 2,
-    "comma-style": [
-      2,
-      "last"
-    ],
+    "comma-style": [2, "last"],
     "no-irregular-whitespace": 2
   },
   "overrides": [
     {
-      "files": [
-        "**/*.tests.js",
-        "**/*.test.js",
-        "**/test/**/*.js"
-      ],
+      "files": ["**/*.tests.js", "**/*.test.js", "**/test/**/*.js"],
       "env": {
         "mocha": true
       },

@@ -47,29 +47,58 @@ describe("#idp-redirector", () => {
         {
           clientName: "client 2",
           patterns: ["https://url2.com?*"]
+        },
+        {
+          clientName: "client name 3",
+          loginUrl: "https://url3.com/login",
+          patterns: [
+            "https://url3.com/withPath*",
+            "https://url1.com/otherPath*"
+          ]
+        },
+        {
+          clientName: "a long client name",
+          loginUrl:
+            "https://some.really.long.url.not.long.enough.com:12345/login",
+          patterns: [
+            "https://some.really.long.url.not.long.enough.com:12345",
+            "https://some.really.long.url.not.long.enough.com:12345/*",
+            "https://some.really.long.url.not.long.enough.com:12345?*"
+          ]
         }
       ];
 
       const expectedHostToPattern = {
         "https://url1.com": [
           {
-            patternRaw: "https://url1.com/withPath",
-            endsWithWildcard: true,
             clientName: "client name",
-            loginUrl: "https://url1.com/login"
+            loginUrl: "/login",
+            patterns: ["/withPath*", ""]
           },
           {
-            patternRaw: "https://url1.com",
-            endsWithWildcard: false,
-            clientName: "client name",
-            loginUrl: "https://url1.com/login"
+            clientName: "client name 3",
+            loginUrl: "https://url3.com/login",
+            patterns: ["/otherPath*"]
           }
         ],
         "https://url2.com": [
           {
-            patternRaw: "https://url2.com?",
-            endsWithWildcard: true,
-            clientName: "client 2"
+            clientName: "client 2",
+            patterns: ["?*"]
+          }
+        ],
+        "https://url3.com": [
+          {
+            clientName: "client name 3",
+            loginUrl: "/login",
+            patterns: ["/withPath*"]
+          }
+        ],
+        "https://some.really.long.url.not.long.enough.com:12345": [
+          {
+            clientName: "a long client name",
+            loginUrl: "/login",
+            patterns: ["", "/*", "?*"]
           }
         ]
       };
@@ -82,7 +111,7 @@ describe("#idp-redirector", () => {
           if (err) return done(err);
 
           expect(res.body).to.deep.equal(whiteListData);
-          expect(storage.data.whiteList).to.deep.equal(whiteListData);
+          expect(storage.data.whiteList).to.equal(undefined);
           expect(storage.data.hostToPattern).to.deep.equal(
             expectedHostToPattern
           );
@@ -230,12 +259,70 @@ describe("#idp-redirector", () => {
     it("Should get valid whitelist", done => {
       const expectedWhiteList = [
         {
-          clientName: "some name",
-          loginUrl: "http://login.url.com",
-          patterns: ["http://login.url.com"]
+          clientName: "client name",
+          loginUrl: "https://url1.com/login",
+          patterns: ["https://url1.com/withPath*", "https://url1.com"]
+        },
+        {
+          clientName: "client name 3",
+          loginUrl: "https://url3.com/login",
+          patterns: [
+            "https://url1.com/otherPath*",
+            "https://url3.com/withPath*"
+          ]
+        },
+        {
+          clientName: "client 2",
+          patterns: ["https://url2.com?*"]
+        },
+        {
+          clientName: "a long client name",
+          loginUrl:
+            "https://some.really.long.url.not.long.enough.com:12345/login",
+          patterns: [
+            "https://some.really.long.url.not.long.enough.com:12345",
+            "https://some.really.long.url.not.long.enough.com:12345/*",
+            "https://some.really.long.url.not.long.enough.com:12345?*"
+          ]
         }
       ];
-      storage.data.whiteList = expectedWhiteList;
+
+      const hostToPattern = {
+        "https://url1.com": [
+          {
+            clientName: "client name",
+            loginUrl: "/login",
+            patterns: ["/withPath*", ""]
+          },
+          {
+            clientName: "client name 3",
+            loginUrl: "https://url3.com/login",
+            patterns: ["/otherPath*"]
+          }
+        ],
+        "https://url2.com": [
+          {
+            clientName: "client 2",
+            patterns: ["?*"]
+          }
+        ],
+        "https://url3.com": [
+          {
+            clientName: "client name 3",
+            loginUrl: "/login",
+            patterns: ["/withPath*"]
+          }
+        ],
+        "https://some.really.long.url.not.long.enough.com:12345": [
+          {
+            clientName: "a long client name",
+            loginUrl: "/login",
+            patterns: ["", "/*", "?*"]
+          }
+        ]
+      };
+
+      storage.data.hostToPattern = hostToPattern;
       request(app)
         .get("/api")
         .expect(200)
@@ -243,7 +330,6 @@ describe("#idp-redirector", () => {
           if (err) return done(err);
 
           expect(res.body).to.deep.equal(expectedWhiteList);
-          expect(Object.keys(res.body).length).to.equal(1);
           done();
         });
     });

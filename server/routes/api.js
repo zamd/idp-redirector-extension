@@ -8,9 +8,8 @@ const jwtAuthz = require("express-jwt-authz");
 module.exports = storage => {
   const api = new Router();
 
-  const writeToStorage = async (whiteList, hostToPattern) => {
+  const writeToStorage = async hostToPattern => {
     const data = await storage.read();
-    data.whiteList = whiteList;
     data.hostToPattern = hostToPattern;
     try {
       await storage.write(data);
@@ -87,16 +86,28 @@ module.exports = storage => {
             hostToPattern[base] = [];
           }
 
-          const newPattern = {
-            patternRaw,
-            endsWithWildcard,
-            clientName: clientPattern.clientName
-          };
+          let client = hostToPattern[base].find(
+            host => host.clientName === clientPattern.clientName
+          );
 
-          if (clientPattern.loginUrl) {
-            newPattern.loginUrl = clientPattern.loginUrl;
+          if (!client) {
+            client = {
+              clientName: clientPattern.clientName,
+              patterns: []
+            };
+            if (clientPattern.loginUrl) {
+              client.loginUrl = clientPattern.loginUrl.startsWith(base)
+                ? clientPattern.loginUrl.substr(base.length)
+                : clientPattern.loginUrl;
+            }
+            hostToPattern[base].push(client);
           }
-          hostToPattern[base].push(newPattern);
+
+          if (pattern.startsWith(base)) {
+            client.patterns.push(pattern.substr(base.length));
+          } else {
+            client.patterns.push(pattern);
+          }
         });
       });
     } catch (e) {
@@ -108,10 +119,12 @@ module.exports = storage => {
     }
 
     try {
-      await writeToStorage(whiteList, hostToPattern);
+      await writeToStorage(hostToPattern);
 
       return res.status(200).json(whiteList);
     } catch (e) {
+      logger.error(`Could not update storage because: ${e.message}`);
+
       if (e.code === 409) {
         return res.status(409).json({
           error: "update_conflict",
@@ -127,10 +140,48 @@ module.exports = storage => {
     }
   });
 
+  const convertShortUrlBackToLongUrl = (domain, path) => {
+    try {
+      new URL(path);
+      return path;
+    } catch (e) {
+      // This error is expected, we should just return the path if the path had a domain to begin with
+      return domain + path;
+    }
+  };
+
   api.get("/", jwtAuthz(["read:patterns"]), (req, res) => {
     logger.info("reading data");
     storage.read().then(data => {
-      res.json(data.whiteList);
+      const clients = {};
+      data.hostToPattern = data.hostToPattern || {};
+      Object.keys(data.hostToPattern).forEach(domain => {
+        data.hostToPattern[domain].forEach(client => {
+          let mappedClient = clients[client.clientName];
+          if (!mappedClient) {
+            mappedClient = {
+              clientName: client.clientName,
+              patterns: []
+            };
+            if (client.loginUrl) {
+              mappedClient.loginUrl = convertShortUrlBackToLongUrl(
+                domain,
+                client.loginUrl
+              );
+            }
+
+            clients[client.clientName] = mappedClient;
+          }
+
+          client.patterns.forEach(pattern =>
+            mappedClient.patterns.push(
+              convertShortUrlBackToLongUrl(domain, pattern)
+            )
+          );
+        });
+      });
+
+      res.json(Object.keys(clients).map(clientName => clients[clientName]));
     });
   });
 

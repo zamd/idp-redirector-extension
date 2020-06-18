@@ -290,8 +290,7 @@ describe("#idp-redirector", async () => {
           .get("/?state=bad")
           .query({
             error
-          })
-          .end();
+          });
       }
       sinon.assert.calledOnce(getTenantSettingsStub);
     });

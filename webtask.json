@@ -27,14 +27,14 @@
       "description": "The name of the CI/CD client",
       "default": "IDP Redirector CI/CD Client"
     },
-    "LOGS_API_KEY": {
-      "description": "API key for logs offloading",
+    "DATADOG_API_KEY": {
+      "description": "API key for DataDog",
       "required": true,
       "type": "password"
     },
-    "LOGS_URL": {
-      "description": "A URL for sending the logs",
-      "example": "https://example.com/logStream"
+    "DATADOG_URL": {
+      "description": "The datadog URL for sending the logs",
+      "example": "https://http-intake.logs.datadoghq.com/v1/input"
     }
   }
 }

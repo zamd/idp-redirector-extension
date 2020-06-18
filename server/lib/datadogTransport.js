@@ -27,7 +27,8 @@ module.exports = class YourCustomTransport extends Transport {
       const data = JSON.parse(JSON.stringify(info));
       delete data.level;
       await axios.post(url, data, {
-        headers: { "DD-API-KEY": apiKey }
+        headers: { "DD-API-KEY": apiKey },
+        timeout: 5000 // no more than 5 seconds to wait
       });
     } catch (e) {
       console.error(

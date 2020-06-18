@@ -4,6 +4,10 @@ const expressApp = require("./server");
 const config = require("./server/lib/config");
 const logger = require("./server/lib/logger");
 
+process.on("uncaughtException", err => {
+  logger.verbose(err);
+});
+
 const createServer = tools.createServer((cfg, storage) => {
   logger.verbose(
     "Starting Idp Redirector Extension - Version:",

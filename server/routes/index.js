@@ -156,7 +156,7 @@ module.exports = storage => {
                 clientPattern.loginUrl
               ),
               clientName: clientPattern.clientName,
-              pattern
+              pattern: fullPattern + (endsWithWildcard ? "*" : "")
             };
           }
         });

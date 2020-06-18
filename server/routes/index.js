@@ -6,6 +6,7 @@ const { URL } = require("url");
 const querystring = require("querystring");
 const logger = require("../lib/logger");
 const config = require("../lib/config");
+const convertShortUrlBackToLongUrl = require("../lib/convertShortUrlToLongUrl");
 
 module.exports = storage => {
   const index = new Router();
@@ -113,33 +114,49 @@ module.exports = storage => {
     }
 
     let loginUrl = state;
+    let matched = false;
 
     try {
       const stateUrl = new URL(state);
       const stateHost = `${stateUrl.protocol}//${stateUrl.host}`;
 
-      const patterns = req.hostToPattern[stateHost];
+      const clientPatterns = req.hostToPattern[stateHost];
 
-      if (!patterns) {
+      if (!clientPatterns) {
         return redirectToErrorPage(req, res, {
           error: "invalid_host",
           error_description: `Invalid host in state url: ${state}`
         });
       }
 
-      let matched = false;
-
-      patterns.forEach(pattern => {
+      clientPatterns.forEach(clientPattern => {
         if (matched) return;
 
-        if (
-          (pattern.endsWithWildcard && state.startsWith(pattern.patternRaw)) ||
-          state === pattern.patternRaw
-        ) {
-          matched = {
-            loginUrl: pattern.loginUrl
-          };
-        }
+        clientPattern.patterns.forEach(pattern => {
+          if (matched) return;
+
+          const endsWithWildcard = pattern.endsWith("*");
+          const patternRaw = endsWithWildcard
+            ? pattern.substr(0, pattern.length - 1)
+            : pattern;
+
+          const fullPattern = convertShortUrlBackToLongUrl(
+            stateHost,
+            patternRaw
+          );
+
+          if (
+            (endsWithWildcard && state.startsWith(fullPattern)) ||
+            state === fullPattern
+          ) {
+            matched = {
+              domain: stateHost,
+              loginUrl: convertShortUrlBackToLongUrl(stateHost, clientPattern.loginUrl),
+              clientName: clientPattern.clientName,
+              pattern
+            };
+          }
+        });
       });
 
       if (!matched) {
@@ -157,6 +174,7 @@ module.exports = storage => {
       });
     }
 
+    let user = undefined;
     let errorParams = {};
     if (req.query.error || req.query.error_description) {
       errorParams = {
@@ -183,15 +201,7 @@ module.exports = storage => {
         );
 
         const idToken = response.data && response.data.id_token;
-        const claims = jwt.decode(idToken);
-        logger.info({
-          type: "successful_redirect",
-          description: "Successful Redirect",
-          details: {
-            user: claims,
-            req
-          }`Successful redirect to ${loginUrl} for ${claims.sub}, state ${state}`
-        });
+        user = jwt.decode(idToken);
       } catch (e) {
         logger.error(`Error attempting to exchange code: ${e.message}`);
         const error = {
@@ -209,12 +219,36 @@ module.exports = storage => {
     }
 
     const redirectUrl = new URL(loginUrl);
-    redirectUrl.search = querystring.stringify({
+    const responseParams = {
       iss: `https://${config("AUTH0_DOMAIN")}`,
       target_link_uri: state,
       ...errorParams
-    });
-    logger.info(`Redirecting to ${redirectUrl.href}`);
+    };
+    redirectUrl.search = querystring.stringify(responseParams);
+    const details = {
+      matched,
+      response: {
+        location: loginUrl,
+        query: responseParams
+      }
+    };
+    if (errorParams.error) {
+      logger.error({
+        type: "error_redirect",
+        description: "Error Redirect",
+        req,
+        user,
+        details
+      });
+    } else {
+      logger.info({
+        type: "successful_redirect",
+        description: "Successful Redirect",
+        req,
+        user,
+        details
+      });
+    }
     return res.redirect(redirectUrl.href);
   });
 

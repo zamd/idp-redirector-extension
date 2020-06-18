@@ -9,7 +9,7 @@ const bodyParser = require("body-parser");
 const config = require("../../server/lib/config");
 const api = require("../../server/routes/api");
 
-describe("#idp-redirector", () => {
+describe("#idp-redirector/api", () => {
   const defaultConfig = require("../../server/config.json");
   config.setProvider(key => defaultConfig[key], null);
 

@@ -2,8 +2,10 @@ const { Router } = require("express");
 const Joi = require("joi");
 const { URL } = require("url");
 
-const logger = require("../lib/logger");
 const jwtAuthz = require("express-jwt-authz");
+
+const logger = require("../lib/logger");
+const convertShortUrlBackToLongUrl = require("../lib/convertShortUrlToLongUrl");
 
 module.exports = storage => {
   const api = new Router();
@@ -151,20 +153,11 @@ module.exports = storage => {
     }
   });
 
-  const convertShortUrlBackToLongUrl = (domain, path) => {
-    try {
-      new URL(path);
-      return path;
-    } catch (e) {
-      // This error is expected, we should just return the path if the path had a domain to begin with
-      return domain + path;
-    }
-  };
-
   api.get("/", jwtAuthz(["read:patterns"]), (req, res) => {
     logger.debug("reading data");
     storage.read().then(data => {
       const clients = {};
+      data = data || {};
       data.hostToPattern = data.hostToPattern || {};
       Object.keys(data.hostToPattern).forEach(domain => {
         data.hostToPattern[domain].forEach(client => {

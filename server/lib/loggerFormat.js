@@ -25,6 +25,12 @@ class Formatter {
         info.message.details = info.message.details || {};
         info.message.details.request = info.message.details.request || {};
         info.message.details.request.query = info.message.req.query;
+        if (
+          info.message.details.request.query &&
+          info.message.details.request.query.code
+        ) {
+          info.message.details.request.query.code = "******";
+        }
       }
       if (info.message.req.body) {
         info.message.details = info.message.details || {};

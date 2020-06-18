@@ -1,12 +1,13 @@
 const nock = require("nock");
 const jwt = require("jsonwebtoken");
+const bodyParser = require("body-parser");
 const { expect } = require("chai");
 const { URL } = require("url");
 const request = require("supertest");
 const { describe, it, before, beforeEach } = require("mocha");
 const Promise = require("bluebird");
 const express = require("express");
-const proxyquire = require("proxyquire");
+const proxyquire = require("proxyquire").noCallThru();
 const sinon = require("sinon");
 
 let Auth0ClientStub = {};
@@ -23,15 +24,18 @@ const config = require("../../server/lib/config");
 const index = proxyquire("../../server/routes/index", {
   "auth0-extension-express-tools": Auth0ExentionToolsStub
 });
+const api = proxyquire("../../server/routes/api", {
+  "auth0-extension-express-tools": Auth0ExentionToolsStub
+});
 
-describe("#idp-redirector", async () => {
+describe("#idp-redirector/index", async () => {
   const defaultConfig = require("../../server/config.json");
   defaultConfig["PUBLIC_WT_URL"] =
     defaultConfig["PUBLIC_WT_URL"] || "https://test.webtask.com";
   config.setProvider(key => defaultConfig[key], null);
 
   const storage = {
-    read: () => Promise.resolve(storage.data),
+    read: () => Promise.resolve(storage.data || {}),
     write: data => {
       storage.data = data;
       return Promise.resolve();
@@ -40,6 +44,15 @@ describe("#idp-redirector", async () => {
 
   const app = express();
   app.use("/", index(storage));
+  app.use(bodyParser.json());
+  app.use(bodyParser.urlencoded({ extended: false }));
+  app.use((req, res, next) => {
+    req.user = {
+      scope: "read:patterns update:patterns"
+    };
+    next();
+  });
+  app.use("/api", api(storage));
   const baseUri = config("PUBLIC_WT_URL");
 
   let goodCode, badCode;
@@ -53,29 +66,29 @@ describe("#idp-redirector", async () => {
     .resolves({ error_page: { url: errorPageUrl } });
   Auth0ClientStub = { getTenantSettings: getTenantSettingsStub };
 
-  before(() => {
-    storage.data = {
-      hostToPattern: {
-        "https://url1.com": [
-          {
-            patterns: ["", "/withPath*"],
-            clientName: "client name",
-            loginUrl: "/login"
-          }
-        ],
-        "https://url2.com": [
-          {
-            patterns: ["?*"],
-            clientName: "client 2"
-          }
-        ]
-      }
-    };
-
+  before(done => {
     nock("https://http-intake.logs.datadoghq.com")
       .persist()
       .post("/v1/input", () => true)
       .reply(200, {});
+
+    request(app)
+      .put("/api")
+      .send([
+        {
+          clientName: "client name",
+          loginUrl: "https://url1.com/login",
+          patterns: ["https://url1.com", "https://url1.com/withPath*"]
+        },
+        {
+          patterns: ["https://url2.com?*"],
+          clientName: "client 2"
+        }
+      ])
+      .end(err => {
+        if (err) return done(err);
+        done();
+      });
   });
 
   beforeEach(() => {

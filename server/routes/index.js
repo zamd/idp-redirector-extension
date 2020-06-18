@@ -151,7 +151,10 @@ module.exports = storage => {
           ) {
             matched = {
               domain: stateHost,
-              loginUrl: convertShortUrlBackToLongUrl(stateHost, clientPattern.loginUrl),
+              loginUrl: convertShortUrlBackToLongUrl(
+                stateHost,
+                clientPattern.loginUrl
+              ),
               clientName: clientPattern.clientName,
               pattern
             };

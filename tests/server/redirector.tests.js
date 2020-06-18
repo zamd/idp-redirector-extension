@@ -164,6 +164,35 @@ describe("#idp-redirector/index", async () => {
         });
     });
 
+    it("should redirect to state with correct parameters", done => {
+      const targetUrl = "https://url2.com?q=xyz";
+      request(app)
+        .get("/")
+        .query({
+          state: targetUrl,
+          code: goodCode
+        })
+        .send()
+        .expect(302)
+        .end((err, res) => {
+          if (err) return done(err);
+
+          const target = new URL(res.headers["location"]);
+
+          expect(target.origin).to.equal("https://url2.com");
+          expect(target.pathname).to.equal("/");
+          expect(target.search).to.include("q%3Dxyz");
+          expect(target.searchParams.get("target_link_uri")).to.be.equal(
+            targetUrl
+          );
+          expect(target.searchParams.get("iss")).to.be.equal(
+            `https://${config("AUTH0_DOMAIN")}`
+          );
+
+          done();
+        });
+    });
+
     it("should redirect to loginUrl with error & error_description", done => {
       const targetUrl = "https://url1.com/withPath/abc?q=xyz";
       request(app)

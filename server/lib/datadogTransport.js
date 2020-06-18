@@ -12,7 +12,7 @@ module.exports = class YourCustomTransport extends Transport {
     super(opts);
   }
 
-  async log(info) {
+  async log(info, callback) {
     setImmediate(() => {
       this.emit("logged", info);
     });
@@ -24,9 +24,7 @@ module.exports = class YourCustomTransport extends Transport {
         "https://http-intake.logs.datadoghq.com/v1/input";
       const apiKey = config("DATADOG_API_KEY");
 
-      const data = JSON.parse(JSON.stringify(info));
-      delete data.level;
-      await axios.post(url, data, {
+      await axios.post(url, info, {
         headers: { "DD-API-KEY": apiKey },
         timeout: 5000 // no more than 5 seconds to wait
       });
@@ -36,6 +34,8 @@ module.exports = class YourCustomTransport extends Transport {
           JSON.stringify(e.response.data)}`
       );
     }
+
+    callback();
   }
 
   logException() {

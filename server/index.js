@@ -1,6 +1,7 @@
 const path = require("path");
 const morgan = require("morgan");
 const Express = require("express");
+const querystring = require("querystring");
 const jwt = require("express-jwt");
 const jwks = require("jwks-rsa");
 const bodyParser = require("body-parser");
@@ -33,6 +34,15 @@ module.exports = (cfg, storageProvider) => {
 
     next();
   });
+
+  morgan.token("url", req => {
+    const query = JSON.parse(JSON.stringify(req.query));
+    if (query.code) {
+      query.code = "*****";
+    }
+    return req.path + querystring.stringify(query);
+  });
+
   app.use(
     morgan(":method :url :status :response-time ms - :res[content-length]", {
       stream: logger.stream

@@ -181,7 +181,7 @@ describe("#idp-redirector/index", async () => {
 
           expect(target.origin).to.equal("https://url2.com");
           expect(target.pathname).to.equal("/");
-          expect(target.search).to.include("q%3Dxyz");
+          expect(target.search).to.include("q=xyz");
           expect(target.searchParams.get("target_link_uri")).to.be.equal(
             targetUrl
           );

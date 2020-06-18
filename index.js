@@ -18,8 +18,8 @@ nconf
     HOSTING_ENV: "default",
     AUTH0_RTA: "https://auth0.auth0.com",
     PORT: 3001,
-    WT_URL: "http://localhost:3000",
-    PUBLIC_WT_URL: "http://localhost:3000"
+    WT_URL: "http://localhost:3001",
+    PUBLIC_WT_URL: "http://localhost:3001"
   });
 
 // Start the server.

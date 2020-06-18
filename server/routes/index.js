@@ -99,10 +99,6 @@ module.exports = storage => {
     });
   };
 
-  index.get("/defaultError", (req, res) => {
-    res.json(req.query);
-  });
-
   index.get("/", async (req, res) => {
     req.query = req.query || {}; // defensive set of query
     const state = req.query.state;
@@ -208,7 +204,7 @@ module.exports = storage => {
         const idToken = response.data && response.data.id_token;
         user = jwt.decode(idToken);
       } catch (e) {
-        logger.error(`Error attempting to exchange code: ${e.message}`);
+        logger.verbose(`Error attempting to exchange code: ${e.message}`);
         const error = {
           error: "internal_error",
           error_description: "Internal Server Error"
@@ -225,6 +221,7 @@ module.exports = storage => {
 
     const redirectUrl = new URL(loginUrl);
     const responseParams = {
+      ...querystring.parse(redirectUrl.search),
       iss: `https://${config("AUTH0_DOMAIN")}`,
       target_link_uri: state,
       ...errorParams

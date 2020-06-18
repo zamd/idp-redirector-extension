@@ -58,27 +58,24 @@ describe("#idp-redirector", async () => {
       hostToPattern: {
         "https://url1.com": [
           {
-            patternRaw: "https://url1.com/withPath",
-            endsWithWildcard: true,
+            patterns: ["", "/withPath*"],
             clientName: "client name",
-            loginUrl: "https://url1.com/login"
-          },
-          {
-            patternRaw: "https://url1.com",
-            endsWithWildcard: false,
-            clientName: "client name",
-            loginUrl: "https://url1.com/login"
+            loginUrl: "/login"
           }
         ],
         "https://url2.com": [
           {
-            patternRaw: "https://url2.com?",
-            endsWithWildcard: true,
+            patterns: ["?*"],
             clientName: "client 2"
           }
         ]
       }
     };
+
+    nock("https://http-intake.logs.datadoghq.com")
+      .persist()
+      .post("/v1/input", () => true)
+      .reply(200, {});
   });
 
   beforeEach(() => {

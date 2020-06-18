@@ -1,3 +1,4 @@
+const nock = require("nock");
 const { expect } = require("chai");
 const request = require("supertest");
 const { describe, it, before } = require("mocha");
@@ -34,6 +35,10 @@ describe("#idp-redirector", () => {
 
   before(() => {
     storage.data = {};
+    nock("https://http-intake.logs.datadoghq.com")
+      .persist()
+      .post("/v1/input", () => true)
+      .reply(200, {});
   });
 
   describe("PUT /api", () => {
@@ -155,7 +160,7 @@ describe("#idp-redirector", () => {
             patterns: ["https://example.com/path*/somethingelse"]
           }
         ],
-        'ValidationError: "value" at position 0 fails because [child "patterns" fails because ["patterns" at position 0 fails because ["0" with value "https:&#x2f;&#x2f;example.com&#x2f;path&#x2a;&#x2f;somethingelse" fails to match the required pattern: /^[^*]*\\*?$/]]]'
+        '"value" at position 0 fails because [child "patterns" fails because ["patterns" at position 0 fails because ["0" with value "https:&#x2f;&#x2f;example.com&#x2f;path&#x2a;&#x2f;somethingelse" fails to match the required pattern: /^[^*]*\\*?$/]]]'
       )
     );
 
@@ -181,7 +186,7 @@ describe("#idp-redirector", () => {
             patterns: ["https://example.com"]
           }
         ],
-        'ValidationError: "value" at position 0 fails because [child "clientName" fails because ["clientName" is not allowed to be empty]]'
+        '"value" at position 0 fails because [child "clientName" fails because ["clientName" is not allowed to be empty]]'
       )
     );
 
@@ -194,7 +199,7 @@ describe("#idp-redirector", () => {
             patterns: ["https://example.com"]
           }
         ],
-        'ValidationError: "value" at position 0 fails because [child "clientName" fails because ["clientName" must be a string]]'
+        '"value" at position 0 fails because [child "clientName" fails because ["clientName" must be a string]]'
       )
     );
 
@@ -222,7 +227,7 @@ describe("#idp-redirector", () => {
             patterns: ["https://example.com"]
           }
         ],
-        'ValidationError: "value" at position 0 fails because ["someOtherKey" is not allowed]'
+        '"value" at position 0 fails because ["someOtherKey" is not allowed]'
       )
     );
 
@@ -235,7 +240,7 @@ describe("#idp-redirector", () => {
             patterns: []
           }
         ],
-        'ValidationError: "value" at position 0 fails because [child "patterns" fails because ["patterns" does not contain 1 required value(s)]]'
+        '"value" at position 0 fails because [child "patterns" fails because ["patterns" does not contain 1 required value(s)]]'
       )
     );
 
@@ -248,7 +253,7 @@ describe("#idp-redirector", () => {
 
           expect(res.body.error).to.equal("invalid_request");
           expect(res.body.error_description).to.equal(
-            'ValidationError: "value" must be an array'
+            '"value" must be an array'
           );
           done();
         });

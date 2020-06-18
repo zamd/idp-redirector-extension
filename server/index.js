@@ -59,6 +59,6 @@ module.exports = (cfg, storageProvider) => {
   app.use(index(storage));
 
   // Generic error handler.
-  app.use(errorHandler(logger.error));
+  app.use(errorHandler(logger.verbose));
   return app;
 };

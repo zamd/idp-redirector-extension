@@ -13,11 +13,10 @@ module.exports = storage => {
     data.hostToPattern = hostToPattern;
     try {
       await storage.write(data);
-      logger.info("Whitelist updated");
+      logger.debug("Whitelist updated");
     } catch (e) {
       // TODO: Do we want to try again, or should we just throw an error here?
       // if (e.code === 409) return await writeToStorage(whiteList);
-      logger.error(`Error trying to write to storage: ${e.message}`, e);
       throw e;
     }
   };
@@ -46,7 +45,15 @@ module.exports = storage => {
 
     try {
       const { error: joiError } = await Joi.validate(whiteList, patternSchema);
-      if (joiError) throw new Error(decodeURI(joiError));
+      if (joiError) {
+        logger.verbose(
+          `Failed attempt to update whitelist: ${joiError.message}`
+        );
+        return res.status(400).json({
+          error: "invalid_request",
+          error_description: joiError.message
+        });
+      }
 
       whiteList.forEach(clientPattern => {
         if (clientPattern.loginUrl) {
@@ -67,7 +74,7 @@ module.exports = storage => {
           try {
             patternUrl = new URL(patternRaw);
           } catch (e) {
-            logger.error(`Bad pattern: ${pattern}, ${patternRaw}`, e);
+            logger.debug(`Bad pattern: ${pattern}, ${patternRaw}`, e);
             throw new Error(
               `pattern must be in the format of a URL: ${pattern}`
             );
@@ -111,7 +118,7 @@ module.exports = storage => {
         });
       });
     } catch (e) {
-      logger.error(`Failed attempt to update whitelist: ${e.message}`);
+      logger.verbose(`Failed attempt to update whitelist: ${e.message}`);
       return res.status(400).json({
         error: "invalid_request",
         error_description: e.message
@@ -123,8 +130,6 @@ module.exports = storage => {
 
       return res.status(200).json(whiteList);
     } catch (e) {
-      logger.error(`Could not update storage because: ${e.message}`);
-
       if (e.code === 409) {
         return res.status(409).json({
           error: "update_conflict",
@@ -132,6 +137,12 @@ module.exports = storage => {
             "Can not override conflicting update, ensure you have the latest data and retry"
         });
       }
+
+      logger.error({
+        req,
+        type: "failed_PUT",
+        description: `Could not update storage because: ${e.message}`
+      });
 
       return res.status(500).json({
         error: "internal_error",
@@ -151,7 +162,7 @@ module.exports = storage => {
   };
 
   api.get("/", jwtAuthz(["read:patterns"]), (req, res) => {
-    logger.info("reading data");
+    logger.debug("reading data");
     storage.read().then(data => {
       const clients = {};
       data.hostToPattern = data.hostToPattern || {};

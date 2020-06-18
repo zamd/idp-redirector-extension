@@ -17,7 +17,7 @@ module.exports = storage => {
 
   const getErrorPageFromTenantSettings = async req => {
     if (!global.tenantErrorPage) {
-      logger.info("cache miss, loading error page from tenant settings.");
+      logger.verbose("cache miss, loading error page from tenant settings.");
       const {
         error_page: { url: errorUrl }
       } = await req.auth0.getTenantSettings({
@@ -43,12 +43,25 @@ module.exports = storage => {
       lang: req.headers["accept-language"],
       ...errorInfo
     };
-    logger.error("Error: ", queryParams);
+    logger.error({
+      type: "failed_redirect",
+      description: "Failed to redirect after IdP Initiated Login",
+      details: {
+        response: {
+          query: queryParams
+        }
+      },
+      req
+    });
     // res.redirect(`error?${querystring.stringify(queryParams)}`);
 
     ensureAuth0ApiClient()(req, res, async err => {
       if (err) {
-        logger.error("Couldn't get management API client.", err);
+        logger.error({
+          type: "failed_redirect",
+          description: `Couldn't get management API client because: ${err.message}`,
+          req
+        });
         return res.status(500).send(
           JSON.stringify(
             {
@@ -65,7 +78,12 @@ module.exports = storage => {
         url.search = querystring.stringify(queryParams);
         return res.redirect(url.href);
       } catch (error) {
-        logger.error("Invalid custom error_page url.", error);
+        logger.error({
+          type: "failed_redirect",
+          description: `Invalid custom error_page url because: ${error.message}`,
+          req
+        });
+
         return res.status(500).send(
           JSON.stringify(
             {
@@ -166,9 +184,14 @@ module.exports = storage => {
 
         const idToken = response.data && response.data.id_token;
         const claims = jwt.decode(idToken);
-        logger.info(
-          `Successful redirect to ${loginUrl} for ${claims.sub}, state ${state}`
-        );
+        logger.info({
+          type: "successful_redirect",
+          description: "Successful Redirect",
+          details: {
+            user: claims,
+            req
+          }`Successful redirect to ${loginUrl} for ${claims.sub}, state ${state}`
+        });
       } catch (e) {
         logger.error(`Error attempting to exchange code: ${e.message}`);
         const error = {

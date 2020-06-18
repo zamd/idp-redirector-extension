@@ -5,7 +5,7 @@ const config = require("./server/lib/config");
 const logger = require("./server/lib/logger");
 
 const createServer = tools.createServer((cfg, storage) => {
-  logger.info(
+  logger.verbose(
     "Starting Idp Redirector Extension - Version:",
     process.env.CLIENT_VERSION
   );

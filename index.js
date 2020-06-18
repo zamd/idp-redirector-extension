@@ -5,7 +5,7 @@ const server = require("./server");
 
 // Handle uncaught.
 process.on("uncaughtException", err => {
-  logger.error(err);
+  logger.verbose(err);
 });
 
 // Initialize configuration.
@@ -23,6 +23,7 @@ nconf
   });
 
 // Start the server.
+
 const app = server(key => nconf.get(key), null);
 const port = nconf.get("PORT");
 
@@ -30,6 +31,6 @@ app.listen(port, error => {
   if (error) {
     logger.error(error);
   } else {
-    logger.info(`Listening on http://localhost:${port}.`);
+    logger.verbose(`Listening on http://localhost:${port}.`);
   }
 });

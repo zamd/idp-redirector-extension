@@ -83,7 +83,7 @@ module.exports = () => {
           error.message ? error.message : ""
         }`
       );
-      logger.error(error);
+      logger.verbose(error);
     } finally {
       res.sendStatus(204);
     }
@@ -91,7 +91,7 @@ module.exports = () => {
 
   hooks.use("/on-install", hookValidator("/.extensions/on-install"));
   hooks.post("/on-install", async (req, res) => {
-    logger.info("Install running...");
+    logger.verbose("Install running...");
     const defaultScopes = [
       {
         value: "update:patterns",
@@ -152,10 +152,10 @@ module.exports = () => {
         scope: defaultScopes.map(scope => scope.value)
       });
 
-      logger.info(`Created Client: ${deploymentClient.client_id}`);
-      logger.info(`Created API: ${redirectorAPI.identifier}`);
-      logger.info(`Created Grant: ${deploymentClientGrant.id}`);
-      logger.info(`Created Rule: ${denyUserAccessRule.name}`);
+      logger.verbose(`Created Client: ${deploymentClient.client_id}`);
+      logger.verbose(`Created API: ${redirectorAPI.identifier}`);
+      logger.verbose(`Created Grant: ${deploymentClientGrant.id}`);
+      logger.verbose(`Created Rule: ${denyUserAccessRule.name}`);
       return res.sendStatus(204);
     } catch (error) {
       logger.debug(
@@ -163,7 +163,7 @@ module.exports = () => {
           error.message ? error.message : ""
         }`
       );
-      logger.error(error);
+      logger.verbose(error);
 
       // Even if deleting fails, we need to be able to uninstall the extension.
       return res.status(500).json({

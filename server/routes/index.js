@@ -202,8 +202,15 @@ module.exports = storage => {
         );
 
         const idToken = response.data && response.data.id_token;
-        //TODO: review case of missing id_token -- jwt.decode just returns undefined *without* throwing
         user = jwt.decode(idToken);
+
+        // jwt.decode just returns undefined *without* throwing
+        if (!user) {
+          return redirectToErrorPage(req, res, {
+            error: "invalid_request",
+            error_description: "Code did not result in a valid login token"
+          });
+        }
       } catch (e) {
         logger.verbose(`Error attempting to exchange code: ${e.message}`);
         const error = {

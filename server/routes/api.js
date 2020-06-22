@@ -17,8 +17,6 @@ module.exports = storage => {
       await storage.write(data);
       logger.debug("Whitelist updated");
     } catch (e) {
-      // TODO: Do we want to try again, or should we just throw an error here?
-      // if (e.code === 409) return await writeToStorage(whiteList);
       throw e;
     }
   };
@@ -112,11 +110,7 @@ module.exports = storage => {
             hostToPattern[base].push(client);
           }
 
-          if (pattern.startsWith(base)) {
-            client.patterns.push(pattern.substr(base.length));
-          } else {
-            client.patterns.push(pattern);
-          }
+          client.patterns.push(pattern.substr(base.length));
         });
       });
     } catch (e) {

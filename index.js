@@ -18,8 +18,6 @@ nconf
     NODE_ENV: "development",
     HOSTING_ENV: "default",
     AUTH0_RTA: "https://auth0.auth0.com",
-    AUTH0_DOMAIN: "mock.auth0.com",
-    EXTENSION_SECRET: "abcdedfh123456",
     PORT: 3001,
     WT_URL: "http://localhost:3001",
     PUBLIC_WT_URL: "http://localhost:3001"

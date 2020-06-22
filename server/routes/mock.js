@@ -4,6 +4,7 @@ const config = require("../lib/config");
 const logger = require("../lib/logger");
 
 module.exports = (app, localhostBaseUrl) => {
+  config.setValue("AUTH0_DOMAIN", "mock.auth0.com");
   config.setValue("AUTH0_CLIENT_ID", "abcdef1234");
   config.setValue("AUTH0_CLIENT_SECRET", "abcdef1234");
 

@@ -1,0 +1,10 @@
+config: # cloud
+  target: "https://keyc.auth0.com"
+  processor: "./__processors__/"
+  phases:
+    - duration: 120
+      arrivalRate: 5
+      maxVusers: 15
+      name: "Warm up load (15 max users)"
+  plugins:
+    expect: {}

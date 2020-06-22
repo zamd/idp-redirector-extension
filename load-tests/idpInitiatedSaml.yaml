@@ -1,44 +1,6 @@
-config:
-  target: "https://{{ $processEnvironment.DOMAIN }}"
-  processor: "./__processors__/"
-  phases:
-    - duration: 60
-      arrivalRate: 20
-  plugins:
-    expect: {}
-  environments:
-    dev: # localhost
-      target: "http://localhost:3001"
-      phases:
-        - duration: 60
-          arrivalRate: 10
-          maxVusers: 15
-          name: "Warm up load (15 max users)"
-    stag: # cloud
-      target: "https://keyc.auth0.com"
-      phases:
-        - duration: 120
-          arrivalRate: 5
-          maxVusers: 15
-          name: "Warm up load (15 max users)"
-    prod: # test appliance cluster
-      target: "https://tehsis-tr-w-tenant.appliance-trial.com"
-      phases:
-        - duration: 120
-          arrivalRate: 2
-          maxVusers: 5
-          name: "Warm up load for 2 mins"
-        - duration: 600
-          arrivalRate: 10
-          maxVusers: 50
-          name: "Sustained Normal load 10 mins"
-        - duration: 1200
-          arrivalRate: 20
-          maxVusers: 100
-          name: "Sustained Peak load for 20 mins"
 scenarios:
   - name: "SAML Idp initialized login"
-    beforeScenario: ["init", "generateSamlResponse"]
+    beforeScenario: ["init", "generateSamlResponse", "setIssuer"]
     flow:
       - post:
           url: "/login/callback?connection={{$processEnvironment.CONNECTION}}"
@@ -55,9 +17,9 @@ scenarios:
           url: "{{applicationCallback}}"
           capture:
             - regexp: "iss=([^&]*)"
-              transform: "decodeURIComponent(this.issuer)"
+              transform: "decodeURIComponent(this.iss)"
               group: 1
-              as: "issuer"
+              as: "iss"
             - regexp: "target_link_uri=([^&]*)"
               transform: "decodeURIComponent(this.targetUri)"
               group: 1
@@ -70,8 +32,8 @@ scenarios:
           expect:
             - statusCode: 302
             - equals:
+                - "{{iss}}"
                 - "{{issuer}}"
-                - "https://{{$processEnvironment.DOMAIN}}"
             - equals:
                 - "{{targetUri}}"
                 - "{{a0Client.relayState}}"

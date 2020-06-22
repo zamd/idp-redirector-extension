@@ -67,7 +67,17 @@ function init(context, ee, next) {
   next();
 }
 
+function setIssuer(context, ee, next) {
+  const { target } = context.vars;
+  if (target === "http://localhost:3001")
+    context.vars.issuer = "https://mock.auth0.com";
+  else context.vars.issuer = target;
+
+  next();
+}
+
 module.exports = {
   generateSamlResponse,
+  setIssuer,
   init
 };

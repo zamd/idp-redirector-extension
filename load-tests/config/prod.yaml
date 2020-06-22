@@ -1,0 +1,16 @@
+config: # test appliance cluster
+  target: "https://tehsis-tr-w-tenant.appliance-trial.com"
+  processor: "./__processors__/"
+  phases:
+    - duration: 120
+      arrivalRate: 2
+      maxVusers: 5
+      name: "Warm up load for 2 mins"
+    - duration: 600
+      arrivalRate: 10
+      maxVusers: 50
+      name: "Sustained Normal load 10 mins"
+    - duration: 1200
+      arrivalRate: 20
+      maxVusers: 100
+      name: "Sustained Peak load for 20 mins"

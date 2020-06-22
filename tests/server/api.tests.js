@@ -291,7 +291,7 @@ describe("#idp-redirector/api", () => {
           });
       });
 
-      it("should fail with generic error for non 409 errors", (done) => {
+      it("should fail with generic error for non 409 errors", done => {
         const error = new Error("some other error");
         storage.write.rejects(error);
 

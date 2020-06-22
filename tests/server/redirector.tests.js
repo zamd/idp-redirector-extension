@@ -67,10 +67,7 @@ describe("#idp-redirector/index", async () => {
   Auth0ClientStub = { getTenantSettings: getTenantSettingsStub };
 
   before(done => {
-    nock("https://http-intake.logs.datadoghq.com")
-      .persist()
-      .post("/v1/input", () => true)
-      .reply(200, {});
+    nock.cleanAll();
 
     request(app)
       .put("/api")
@@ -136,178 +133,230 @@ describe("#idp-redirector/index", async () => {
         });
     });
 
-    it("should redirect to loginUrl with correct parameters", done => {
-      const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request(app)
-        .get("/")
-        .query({
-          state: targetUrl,
-          code: goodCode
-        })
-        .send()
-        .expect(302)
-        .end((err, res) => {
-          if (err) return done(err);
+    describe("good logger", () => {
+      beforeEach(() => {
+        nock("https://http-intake.logs.datadoghq.com")
+          .post("/v1/input", () => true)
+          .reply(200, {});
+      });
 
-          const target = new URL(res.headers["location"]);
+      it("should redirect to loginUrl with correct parameters", done => {
+        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+        request(app)
+          .get("/")
+          .query({
+            state: targetUrl,
+            code: goodCode
+          })
+          .send()
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
 
-          expect(target.origin).to.equal("https://url1.com");
-          expect(target.pathname).to.equal("/login");
-          expect(target.searchParams.get("target_link_uri")).to.be.equal(
-            targetUrl
-          );
-          expect(target.searchParams.get("iss")).to.be.equal(
-            `https://${config("AUTH0_DOMAIN")}`
-          );
+            const target = new URL(res.headers["location"]);
 
-          done();
-        });
+            expect(target.origin).to.equal("https://url1.com");
+            expect(target.pathname).to.equal("/login");
+            expect(target.searchParams.get("target_link_uri")).to.be.equal(
+              targetUrl
+            );
+            expect(target.searchParams.get("iss")).to.be.equal(
+              `https://${config("AUTH0_DOMAIN")}`
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to state with correct parameters", done => {
+        const targetUrl = "https://url2.com?q=xyz";
+        request(app)
+          .get("/")
+          .query({
+            state: targetUrl,
+            code: goodCode
+          })
+          .send()
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"]);
+
+            expect(target.origin).to.equal("https://url2.com");
+            expect(target.pathname).to.equal("/");
+            expect(target.search).to.include("q=xyz");
+            expect(target.searchParams.get("target_link_uri")).to.be.equal(
+              targetUrl
+            );
+            expect(target.searchParams.get("iss")).to.be.equal(
+              `https://${config("AUTH0_DOMAIN")}`
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to loginUrl with error & error_description", done => {
+        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+        request(app)
+          .get("/")
+          .query({
+            state: targetUrl,
+            error: "invalid_client",
+            error_description: "invalid client"
+          })
+          .send()
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"]);
+
+            expect(target.origin).to.equal("https://url1.com");
+            expect(target.pathname).to.equal("/login");
+            expect(target.searchParams.get("target_link_uri")).to.be.equal(
+              targetUrl
+            );
+            expect(target.searchParams.get("iss")).to.be.equal(
+              `https://${config("AUTH0_DOMAIN")}`
+            );
+
+            expect(target.searchParams.get("error")).to.be.equal(
+              "invalid_client"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "invalid client"
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to /error when state url doesn't match whitelist", done => {
+        request(app)
+          .get("/")
+          .query({
+            state: "https://example.com/login/callback"
+          })
+          .send()
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"], "https://x.com");
+
+            expect(target.origin).to.equal(errorPageUrl);
+            expect(target.pathname).to.equal("/");
+            expect(target.searchParams.get("error")).to.be.equal(
+              "invalid_host"
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to /error when we use a bad code", done => {
+        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+        request(app)
+          .get("/")
+          .query({
+            state: targetUrl,
+            code: badCode
+          })
+          .send()
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"], "https://x.com");
+
+            expect(target.origin).to.equal(errorPageUrl);
+            expect(target.pathname).to.equal("/");
+            expect(target.searchParams.get("error")).to.be.equal(
+              "invalid_request"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "Invalid code"
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to /error when oauth token fails with 500", done => {
+        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+        request(app)
+          .get("/")
+          .query({
+            state: targetUrl,
+            code: "some code without a nock"
+          })
+          .send()
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"], "https://x.com");
+
+            expect(target.origin).to.equal(errorPageUrl);
+            expect(target.pathname).to.equal("/");
+            expect(target.searchParams.get("error")).to.be.equal(
+              "internal_error"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "Internal Server Error"
+            );
+
+            done();
+          });
+      });
     });
 
-    it("should redirect to state with correct parameters", done => {
-      const targetUrl = "https://url2.com?q=xyz";
-      request(app)
-        .get("/")
-        .query({
-          state: targetUrl,
-          code: goodCode
-        })
-        .send()
-        .expect(302)
-        .end((err, res) => {
-          if (err) return done(err);
+    describe("bad logger", () => {
+      beforeEach(() => {
+        nock("https://http-intake.logs.datadoghq.com")
+          .post("/v1/input", () => true)
+          .reply(500, { error: "internal_error" });
+      });
 
-          const target = new URL(res.headers["location"]);
+      it("should redirect to loginUrl with correct parameters: even if datadog logging fails", done => {
+        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+        request(app)
+          .get("/")
+          .query({
+            state: targetUrl,
+            code: goodCode
+          })
+          .send()
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
 
-          expect(target.origin).to.equal("https://url2.com");
-          expect(target.pathname).to.equal("/");
-          expect(target.search).to.include("q=xyz");
-          expect(target.searchParams.get("target_link_uri")).to.be.equal(
-            targetUrl
-          );
-          expect(target.searchParams.get("iss")).to.be.equal(
-            `https://${config("AUTH0_DOMAIN")}`
-          );
+            const target = new URL(res.headers["location"]);
 
-          done();
-        });
-    });
+            expect(target.origin).to.equal("https://url1.com");
+            expect(target.pathname).to.equal("/login");
+            expect(target.searchParams.get("target_link_uri")).to.be.equal(
+              targetUrl
+            );
+            expect(target.searchParams.get("iss")).to.be.equal(
+              `https://${config("AUTH0_DOMAIN")}`
+            );
 
-    it("should redirect to loginUrl with error & error_description", done => {
-      const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request(app)
-        .get("/")
-        .query({
-          state: targetUrl,
-          error: "invalid_client",
-          error_description: "invalid client"
-        })
-        .send()
-        .expect(302)
-        .end((err, res) => {
-          if (err) return done(err);
-
-          const target = new URL(res.headers["location"]);
-
-          expect(target.origin).to.equal("https://url1.com");
-          expect(target.pathname).to.equal("/login");
-          expect(target.searchParams.get("target_link_uri")).to.be.equal(
-            targetUrl
-          );
-          expect(target.searchParams.get("iss")).to.be.equal(
-            `https://${config("AUTH0_DOMAIN")}`
-          );
-
-          expect(target.searchParams.get("error")).to.be.equal(
-            "invalid_client"
-          );
-          expect(target.searchParams.get("error_description")).to.be.equal(
-            "invalid client"
-          );
-
-          done();
-        });
-    });
-
-    it("should redirect to /error when state url doesn't match whitelist", done => {
-      request(app)
-        .get("/")
-        .query({
-          state: "https://example.com/login/callback"
-        })
-        .send()
-        .expect(302)
-        .end((err, res) => {
-          if (err) return done(err);
-
-          const target = new URL(res.headers["location"], "https://x.com");
-
-          expect(target.origin).to.equal(errorPageUrl);
-          expect(target.pathname).to.equal("/");
-          expect(target.searchParams.get("error")).to.be.equal("invalid_host");
-
-          done();
-        });
-    });
-
-    it("should redirect to /error when we use a bad code", done => {
-      const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request(app)
-        .get("/")
-        .query({
-          state: targetUrl,
-          code: badCode
-        })
-        .send()
-        .expect(302)
-        .end((err, res) => {
-          if (err) return done(err);
-
-          const target = new URL(res.headers["location"], "https://x.com");
-
-          expect(target.origin).to.equal(errorPageUrl);
-          expect(target.pathname).to.equal("/");
-          expect(target.searchParams.get("error")).to.be.equal(
-            "invalid_request"
-          );
-          expect(target.searchParams.get("error_description")).to.be.equal(
-            "Invalid code"
-          );
-
-          done();
-        });
-    });
-
-    it("should redirect to /error when oauth token fails with 500", done => {
-      const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-      request(app)
-        .get("/")
-        .query({
-          state: targetUrl,
-          code: "some code without a nock"
-        })
-        .send()
-        .expect(302)
-        .end((err, res) => {
-          if (err) return done(err);
-
-          const target = new URL(res.headers["location"], "https://x.com");
-
-          expect(target.origin).to.equal(errorPageUrl);
-          expect(target.pathname).to.equal("/");
-          expect(target.searchParams.get("error")).to.be.equal(
-            "internal_error"
-          );
-          expect(target.searchParams.get("error_description")).to.be.equal(
-            "Internal Server Error"
-          );
-
-          done();
-        });
+            done();
+          });
+      });
     });
   });
 
   describe("GET / with errors", () => {
+    beforeEach(() => {
+      nock("https://http-intake.logs.datadoghq.com")
+        .post("/v1/input", () => true)
+        .reply(200, {});
+    });
+
     it("should load error_page from tenant settings", done => {
       request(app)
         .get("/?state=bad")

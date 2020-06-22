@@ -1,6 +1,16 @@
 const uuid = require("uuid");
 const config = require("./config");
 
+const prepForDetails = (req, type) => {
+  if (req[type]) {
+    const data = JSON.parse(JSON.stringify(req[type]));
+    if (data.code) data.code = "******";
+    return data;
+  }
+
+  return null;
+};
+
 class Formatter {
   constructor(opts) {
     this.includeID = opts.includeID;
@@ -17,36 +27,48 @@ class Formatter {
     }
     response.date = new Date().toISOString();
     if (response.message.req) {
+      // Set some default values
       response.hostname = config("PUBLIC_WT_URL");
       response.client_id = config("AUTH0_CLIENT_ID");
-      response.message.req.headers = response.message.req.headers || {};
-      response.message.req.connection = response.message.req.connection || {};
-      response.ip =
-        response.message.req.headers["x-forwarded-for"] ||
-        response.message.req.connection.remoteAddress;
-      response.user_agent = response.message.req.headers["user-agent"];
-      if (response.message.req.query) {
-        response.message.details = response.message.details || {};
-        response.message.details.request =
-          response.message.details.request || {};
-        response.message.details.request.query = response.message.req.query;
-        if (
-          response.message.details.request.query &&
-          response.message.details.request.query.code
-        ) {
-          response.message.details.request.query.code = "******";
+
+      /* Attempt to set the IP address and user agent from headers */
+      if (response.message.req.headers) {
+        if (response.message.req.headers["x-forwarded-for"]) {
+          response.ip = response.message.req.headers["x-forwarded-for"];
+        }
+        /* Attempt to set the user agent */
+        if (response.message.req.headers["user-agent"]) {
+          response.user_agent = response.message.req.headers["user-agent"];
         }
       }
-      if (response.message.req.body) {
-        response.message.details = response.message.details || {};
-        response.message.details.request =
-          response.message.details.request || {};
-        response.message.details.request.body = response.message.req.body;
+
+      /* If we didn't get the IP from headers, try the connection object */
+      if (
+        !response.ip &&
+        response.message.req.connection &&
+        response.message.req.connection.remoteAddress
+      ) {
+        response.ip = response.message.req.connection.remoteAddress;
       }
+
+      /* Set the query and body parameters if they exist */
+      const query = prepForDetails(response.message.req, "query");
+      const body = prepForDetails(response.message.req, "body");
+
+      if (query || body) {
+        response.details = JSON.parse(
+          JSON.stringify(response.message.details || {})
+        );
+        response.details.request = {};
+        if (query) response.details.request.query = query;
+        if (body) response.details.request.body = body;
+      }
+
+      // clear out message.req
       delete response.message.req;
     }
 
-    if (response.message.user) {
+    if (response.message.user && response.message.user.sub) {
       response.user_id = response.message.user.sub;
       delete response.message.user;
     }

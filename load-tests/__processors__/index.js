@@ -1,3 +1,5 @@
+require("dotenv").config();
+const path = require("path");
 const samlp = require("samlp");
 const { customAlphabet } = require("nanoid");
 const generateUserId = customAlphabet("abcdefghijklmnopqrstuvwxyz", 10);
@@ -19,14 +21,16 @@ function generateSamlResponse(context, ee, next) {
     emails: [`${generateUserId()}${rid}@example.com`]
   };
 
+  const certFile = path.join(__dirname, "./cert/certificate.crt");
+  const keyFile = path.join(__dirname, "./cert/private.key");
   samlp.getSamlResponse(
     {
       nameIdentifierProbes: ["id"],
       issuer: "https://loadtest.example.com/",
       destination: `https://${context.vars.$processEnvironment.DOMAIN}/login/callback?connection=${context.vars.$processEnvironment.CONNECTION}`,
       audience: `urn:auth0:${context.vars.$processEnvironment.TENANT}:${context.vars.$processEnvironment.CONNECTION}`,
-      key: fs.readFileSync(context.vars.$processEnvironment.KEY_FILE, "utf-8"),
-      cert: fs.readFileSync(context.vars.$processEnvironment.CERT_FILE, "utf-8")
+      key: fs.readFileSync(keyFile, "utf-8"),
+      cert: fs.readFileSync(certFile, "utf-8")
     },
     randomUser,
     (err, saml) => {

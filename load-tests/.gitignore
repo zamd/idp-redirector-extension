@@ -1,3 +1,4 @@
 .env
 whitelist.json
 relayStates.json
+private.key

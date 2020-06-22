@@ -1,3 +1,4 @@
+const axios = require("axios");
 const path = require("path");
 const nconf = require("nconf");
 const logger = require("./server/lib/logger");
@@ -17,15 +18,32 @@ nconf
     NODE_ENV: "development",
     HOSTING_ENV: "default",
     AUTH0_RTA: "https://auth0.auth0.com",
+    AUTH0_DOMAIN: "mock.auth0.com",
+    EXTENSION_SECRET: "abcdedfh123456",
     PORT: 3001,
     WT_URL: "http://localhost:3001",
     PUBLIC_WT_URL: "http://localhost:3001"
   });
 
 // Start the server.
-
 const app = server(key => nconf.get(key), null);
 const port = nconf.get("PORT");
+
+if (process.env.NODE_ENV === "development") {
+  const localhostBaseUrl = `http://localhost:${port}`;
+  require("./server/routes/mock")(app, localhostBaseUrl);
+
+  axios.interceptors.request.use(
+    config => {
+      const target = new URL(config.url);
+      if (target.pathname === "/oauth/token") {
+        config.url = `${localhostBaseUrl}/auth0/oauth/token`;
+      }
+      return config;
+    },
+    err => Promise.reject(err)
+  );
+}
 
 app.listen(port, error => {
   if (error) {

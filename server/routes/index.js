@@ -202,6 +202,7 @@ module.exports = storage => {
         );
 
         const idToken = response.data && response.data.id_token;
+        //TODO: review case of missing id_token -- jwt.decode just returns undefined *without* throwing
         user = jwt.decode(idToken);
       } catch (e) {
         logger.verbose(`Error attempting to exchange code: ${e.message}`);

@@ -64,13 +64,16 @@ class Formatter {
         if (body) response.details.request.body = body;
       }
 
+      if (response.message.req.user && response.message.req.user.sub) {
+        response.user_id = response.message.req.user.sub;
+      }
+
+      if (response.message.req.user_error) {
+        response.user_error = response.message.req.user_error;
+      }
+
       // clear out message.req
       delete response.message.req;
-    }
-
-    if (response.message.user && response.message.user.sub) {
-      response.user_id = response.message.user.sub;
-      delete response.message.user;
     }
 
     if (this.includeID) {

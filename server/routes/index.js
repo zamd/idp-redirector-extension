@@ -1,11 +1,11 @@
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const { Router } = require("express");
-const { middlewares } = require("auth0-extension-express-tools");
 const { URL } = require("url");
 const querystring = require("querystring");
 const logger = require("../lib/logger");
 const config = require("../lib/config");
+const errors = require("../lib/errors");
 const convertShortUrlBackToLongUrl = require("../lib/convertShortUrlToLongUrl");
 
 module.exports = storage => {
@@ -13,40 +13,28 @@ module.exports = storage => {
   index.use(async (req, res, next) => {
     const data = await storage.read();
     req.hostToPattern = data.hostToPattern || {}; // don't need to fail if not initialized, everything will just fail
+    req.errorPage = data.errorPage; // don't need to fail if not initialized, everything will just fail
     next();
   });
 
-  const getErrorPageFromTenantSettings = async req => {
-    if (!global.tenantErrorPage) {
-      logger.verbose("cache miss, loading error page from tenant settings.");
-      const {
-        error_page: { url: errorUrl }
-      } = await req.auth0.getTenantSettings({
-        fields: "error_page"
-      });
-      global.tenantErrorPage = errorUrl;
+  const redirectToErrorPage = (req, res, errorInfo) => {
+    let errorCode = errorInfo.code;
+    if (errorCode) {
+      errorInfo.error_description = `[${errorCode}] ${errorInfo.error_description}`;
+      delete errorInfo.code;
     }
 
-    return global.tenantErrorPage;
-  };
-
-  const ensureAuth0ApiClient = () =>
-    middlewares.managementApiClient({
-      domain: config("AUTH0_DOMAIN"),
-      clientId: config("AUTH0_CLIENT_ID"),
-      clientSecret: config("AUTH0_CLIENT_SECRET")
-    });
-
-  const redirectToErrorPage = (req, res, errorInfo) => {
     const queryParams = {
       client_id: "",
       connection: "",
       lang: req.headers["accept-language"],
       ...errorInfo
     };
+
     logger.error({
-      type: "failed_redirect",
+      type: "redirector_failed_redirect",
       description: "Failed to redirect after IdP Initiated Login",
+      error_code: errorCode,
       details: {
         response: {
           query: queryParams
@@ -54,56 +42,73 @@ module.exports = storage => {
       },
       req
     });
-    // res.redirect(`error?${querystring.stringify(queryParams)}`);
 
-    ensureAuth0ApiClient()(req, res, async err => {
-      if (err) {
-        logger.error({
-          type: "failed_redirect",
-          description: `Couldn't get management API client because: ${err.message}`,
-          req
-        });
-        return res.status(500).send(
-          JSON.stringify(
-            {
-              error: "internal_error",
-              error_description: "Internal Server Error"
-            },
-            null,
-            2
-          )
-        );
-      }
-      try {
-        const url = new URL(await getErrorPageFromTenantSettings(req));
-        url.search = querystring.stringify(queryParams);
-        return res.redirect(url.href);
-      } catch (error) {
-        logger.error({
-          type: "failed_redirect",
-          description: `Invalid custom error_page url because: ${error.message}`,
-          req
-        });
+    if (!req.errorPage) {
+      logger.error({
+        type: "redirector_internal_error",
+        error_code: errors.internal.error_page_not_configured,
+        description: `Error page has not been configured`,
+        req
+      });
 
-        return res.status(500).send(
-          JSON.stringify(
-            {
-              error: "internal_error",
-              error_description: "Internal Server Error"
-            },
-            null,
-            2
-          )
-        );
-      }
-    });
+      return res.status(500).send(
+        JSON.stringify(
+          {
+            error: "internal_error",
+            error_description: `[${errors.internal.error_page_not_configured}] Internal Server Error`
+          },
+          null,
+          2
+        )
+      );
+    }
+
+    const url = new URL(req.errorPage);
+    url.search = querystring.stringify(queryParams);
+    return res.redirect(url.href);
   };
 
-  index.get("/", async (req, res) => {
+  const exchangeCodeMiddleware = async (req, res, next) => {
+    if (req.query && req.query.code) {
+      try {
+        const redirect_uri = config("PUBLIC_WT_URL");
+        const response = await axios.post(
+          `https://${config("AUTH0_DOMAIN")}/oauth/token`,
+          {
+            grant_type: "authorization_code",
+            client_id: config("AUTH0_CLIENT_ID"),
+            client_secret: config("AUTH0_CLIENT_SECRET"),
+            redirect_uri,
+            code: req.query.code
+          }
+        );
+
+        if (!response.data || !response.data.id_token) {
+          req.user_error = errors.code_exchange.missing_id_token;
+          next();
+        }
+
+        const idToken = response.data && response.data.id_token;
+        req.user = jwt.decode(idToken);
+      } catch (e) {
+        if (e.response && e.response.status === 403) {
+          req.user_error = errors.code_exchange.forbidden;
+        } else {
+          logger.verbose(`Error attempting to exchange code: ${e.message}`);
+          req.user_error = errors.code_exchange.internal;
+        }
+      }
+    }
+
+    next();
+  };
+
+  index.get("/", exchangeCodeMiddleware, async (req, res) => {
     req.query = req.query || {}; // defensive set of query
     const state = req.query.state;
     if (!state) {
       return redirectToErrorPage(req, res, {
+        code: errors.redirect.missing_state,
         error: "invalid_request",
         error_description: "Missing state parameter"
       });
@@ -120,6 +125,7 @@ module.exports = storage => {
 
       if (!clientPatterns) {
         return redirectToErrorPage(req, res, {
+          code: errors.redirect.state_invalid_host,
           error: "invalid_host",
           error_description: `Invalid host in state url: ${state}`
         });
@@ -162,6 +168,7 @@ module.exports = storage => {
 
       if (!matched) {
         return redirectToErrorPage(req, res, {
+          code: errors.redirect.state_did_not_match_pattern,
           error: "invalid_request",
           error_description: `state must match a valid whitelist pattern: ${state}`
         });
@@ -170,61 +177,23 @@ module.exports = storage => {
       loginUrl = matched.loginUrl ? matched.loginUrl : state;
     } catch (e) {
       return redirectToErrorPage(req, res, {
+        code: errors.redirect.state_must_be_url,
         error: "invalid_request",
         error_description: `state must be in the form of a URL: ${state}`
       });
     }
 
-    let user = undefined;
     let errorParams = {};
     if (req.query.error || req.query.error_description) {
       errorParams = {
         error: req.query.error,
         error_description: req.query.error_description
       };
-    } else if (!req.query.code) {
-      return redirectToErrorPage(req, res, {
+    } else if (req.user_error) {
+      errorParams = {
         error: "invalid_request",
-        error_description: "missing required parameter: code"
-      });
-    } else {
-      try {
-        const redirect_uri = config("PUBLIC_WT_URL");
-        const response = await axios.post(
-          `https://${config("AUTH0_DOMAIN")}/oauth/token`,
-          {
-            grant_type: "authorization_code",
-            client_id: config("AUTH0_CLIENT_ID"),
-            client_secret: config("AUTH0_CLIENT_SECRET"),
-            redirect_uri,
-            code: req.query.code
-          }
-        );
-
-        const idToken = response.data && response.data.id_token;
-        user = jwt.decode(idToken);
-
-        // jwt.decode just returns undefined *without* throwing
-        if (!user) {
-          return redirectToErrorPage(req, res, {
-            error: "invalid_request",
-            error_description: "Code did not result in a valid login token"
-          });
-        }
-      } catch (e) {
-        logger.verbose(`Error attempting to exchange code: ${e.message}`);
-        const error = {
-          error: "internal_error",
-          error_description: "Internal Server Error"
-        };
-
-        if (e.response && e.response.status === 403) {
-          error.error = "invalid_request";
-          error.error_description = "Invalid code";
-        }
-
-        return redirectToErrorPage(req, res, error);
-      }
+        error_description: `[${req.user_error}] Invalid User Code`
+      };
     }
 
     const redirectUrl = new URL(loginUrl);
@@ -242,20 +211,27 @@ module.exports = storage => {
         query: responseParams
       }
     };
-    if (errorParams.error) {
+    if (errorParams.error && !req.user_error) {
       logger.error({
-        type: "error_redirect",
+        type: "redirector_forward_error",
         description: "Error Redirect",
+        error_code: errors.redirect.forwarding_errors,
         req,
-        user,
+        details
+      });
+    } else if (req.user_error) {
+      logger.error({
+        type: "redirector_bad_user_exchange",
+        description: "Error Redirect",
+        error_code: errors.redirect.user_exchange_failed,
+        req,
         details
       });
     } else {
       logger.info({
-        type: "successful_redirect",
+        type: "redirector_successful_redirect",
         description: "Successful Redirect",
         req,
-        user,
         details
       });
     }

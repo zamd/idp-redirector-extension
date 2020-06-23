@@ -22,8 +22,10 @@ describe("#loggerFormat", () => {
         const userId = "userid";
         const inputObject = {
           message: {
-            user: {
-              sub: userId
+            req: {
+              user: {
+                sub: userId
+              }
             }
           }
         };
@@ -37,7 +39,9 @@ describe("#loggerFormat", () => {
       it("no user", () => {
         const inputObject = {
           message: {
-            otherKey: "value"
+            req: {
+              otherKey: "value"
+            }
           }
         };
         const info = formatter.transform(inputObject);
@@ -47,11 +51,56 @@ describe("#loggerFormat", () => {
       it("user no sub", () => {
         const inputObject = {
           message: {
-            user: {}
+            req: {
+              user: {}
+            }
           }
         };
         const info = formatter.transform(inputObject);
         expect(info).to.not.have.property("user_id");
+      });
+
+      it("user error", () => {
+        const errorCode = "AE001";
+        const inputObject = {
+          message: {
+            req: {
+              user_error: errorCode
+            }
+          }
+        };
+        const info = formatter.transform(inputObject);
+        expect(info).to.not.have.property("user_id");
+        expect(info.user_error).to.equal(errorCode);
+      });
+
+      it("error_code", () => {
+        const errorCode = "AE001";
+        const inputObject = {
+          message: {
+            error_code: errorCode
+          }
+        };
+        const info = formatter.transform(inputObject);
+        expect(info.error_code).to.equal(errorCode);
+      });
+
+      it("no error_code", () => {
+        const inputObject = {
+          message: {}
+        };
+        const info = formatter.transform(inputObject);
+        expect(info).to.not.have.property("error_code");
+      });
+
+      it("undefined error_code", () => {
+        const inputObject = {
+          message: {
+            error_code: undefined
+          }
+        };
+        const info = formatter.transform(inputObject);
+        expect(info.error_code).to.equal(undefined);
       });
 
       it("date is present", () => {
@@ -180,14 +229,16 @@ describe("#loggerFormat", () => {
         it("original object untouched", () => {
           const input = {
             message: {
-              req: { headers: { "x-forwarded-for": "some IP address" } },
-              user: { sub: "something" }
+              req: {
+                headers: { "x-forwarded-for": "some IP address" },
+                user: { sub: "something" }
+              },
+              error_code: "blah"
             }
           };
           const originalInput = JSON.parse(JSON.stringify(input));
           const info = formatter.transform(input);
           expect(info).to.not.have.property("message");
-          expect(info).to.not.have.property("user");
           expect(originalInput).to.deep.equal(input);
         });
       });

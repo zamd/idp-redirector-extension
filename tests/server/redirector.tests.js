@@ -11,7 +11,7 @@ const proxyquire = require("proxyquire").noCallThru();
 const sinon = require("sinon");
 
 let Auth0ClientStub = {};
-const Auth0ExentionToolsStub = {
+const Auth0ExtentionToolsStub = {
   middlewares: {
     managementApiClient: () => (req, res, next) => {
       req.auth0 = Auth0ClientStub;
@@ -21,17 +21,20 @@ const Auth0ExentionToolsStub = {
 };
 
 const config = require("../../server/lib/config");
-const index = proxyquire("../../server/routes/index", {
-  "auth0-extension-express-tools": Auth0ExentionToolsStub
-});
+const index = require("../../server/routes/index");
 const api = proxyquire("../../server/routes/api", {
-  "auth0-extension-express-tools": Auth0ExentionToolsStub
+  "auth0-extension-express-tools": Auth0ExtentionToolsStub
 });
 
 describe("#idp-redirector/index", async () => {
   const defaultConfig = require("../../server/config.json");
   defaultConfig["PUBLIC_WT_URL"] =
     defaultConfig["PUBLIC_WT_URL"] || "https://test.webtask.com";
+
+  const fakeDataDogHost = "https://datadog.internal";
+  const fakeDataDogPath = "/v1/logs";
+  defaultConfig["DATADOG_URL"] = fakeDataDogHost + fakeDataDogPath;
+
   config.setProvider(key => defaultConfig[key], null);
 
   const storage = {
@@ -55,7 +58,7 @@ describe("#idp-redirector/index", async () => {
   app.use("/api", api(storage));
   const baseUri = config("PUBLIC_WT_URL");
 
-  let goodCode, badCode;
+  let goodCode, badCode, missingIdTokenCode;
   const exampleUserId = "someuserid";
   const issuer = `https://${defaultConfig.AUTH0_DOMAIN}`;
 
@@ -68,6 +71,10 @@ describe("#idp-redirector/index", async () => {
 
   before(done => {
     nock.cleanAll();
+
+    nock(fakeDataDogHost)
+      .post(fakeDataDogPath, () => true)
+      .reply(200, {});
 
     request(app)
       .put("/api")
@@ -97,6 +104,7 @@ describe("#idp-redirector/index", async () => {
     beforeEach(() => {
       goodCode = "goodcode";
       badCode = "badcode";
+      missingIdTokenCode = "missingcode";
 
       nock(issuer)
         .post("/oauth/token", {
@@ -131,12 +139,22 @@ describe("#idp-redirector/index", async () => {
           error: "invalid_grant",
           error_description: "Invalid authorization code"
         });
+
+      nock(issuer)
+        .post("/oauth/token", {
+          grant_type: "authorization_code",
+          client_id: defaultConfig.AUTH0_CLIENT_ID,
+          client_secret: defaultConfig.AUTH0_CLIENT_SECRET,
+          redirect_uri: baseUri,
+          code: missingIdTokenCode
+        })
+        .reply(200, {});
     });
 
     describe("good logger", () => {
       beforeEach(() => {
-        nock("https://http-intake.logs.datadoghq.com")
-          .post("/v1/input", () => true)
+        nock(fakeDataDogHost)
+          .post(fakeDataDogPath, () => true)
           .reply(200, {});
       });
 
@@ -256,7 +274,7 @@ describe("#idp-redirector/index", async () => {
           });
       });
 
-      it("should redirect to /error when we use a bad code", done => {
+      it("should redirect to loginUrl with an error when we use a bad code", done => {
         const targetUrl = "https://url1.com/withPath/abc?q=xyz";
         request(app)
           .get("/")
@@ -271,20 +289,48 @@ describe("#idp-redirector/index", async () => {
 
             const target = new URL(res.headers["location"], "https://x.com");
 
-            expect(target.origin).to.equal(errorPageUrl);
-            expect(target.pathname).to.equal("/");
+            expect(target.origin).to.equal("https://url1.com");
+            expect(target.pathname).to.equal("/login");
             expect(target.searchParams.get("error")).to.be.equal(
               "invalid_request"
             );
             expect(target.searchParams.get("error_description")).to.be.equal(
-              "Invalid code"
+              "[CE001] Invalid User Code"
             );
 
             done();
           });
       });
 
-      it("should redirect to /error when oauth token fails with 500", done => {
+      it("should redirect to loginUrl with an error when we don't get an id token", done => {
+        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+        request(app)
+          .get("/")
+          .query({
+            state: targetUrl,
+            code: missingIdTokenCode
+          })
+          .send()
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"], "https://x.com");
+
+            expect(target.origin).to.equal("https://url1.com");
+            expect(target.pathname).to.equal("/login");
+            expect(target.searchParams.get("error")).to.be.equal(
+              "invalid_request"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "[CE002] Invalid User Code"
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to loginUrl with an error when oauth token fails with 500", done => {
         const targetUrl = "https://url1.com/withPath/abc?q=xyz";
         request(app)
           .get("/")
@@ -299,13 +345,13 @@ describe("#idp-redirector/index", async () => {
 
             const target = new URL(res.headers["location"], "https://x.com");
 
-            expect(target.origin).to.equal(errorPageUrl);
-            expect(target.pathname).to.equal("/");
+            expect(target.origin).to.equal("https://url1.com");
+            expect(target.pathname).to.equal("/login");
             expect(target.searchParams.get("error")).to.be.equal(
-              "internal_error"
+              "invalid_request"
             );
             expect(target.searchParams.get("error_description")).to.be.equal(
-              "Internal Server Error"
+              "[CE003] Invalid User Code"
             );
 
             done();
@@ -315,8 +361,8 @@ describe("#idp-redirector/index", async () => {
 
     describe("bad logger", () => {
       beforeEach(() => {
-        nock("https://http-intake.logs.datadoghq.com")
-          .post("/v1/input", () => true)
+        nock(fakeDataDogHost)
+          .post(fakeDataDogPath, () => true)
           .reply(500, { error: "internal_error" });
       });
 
@@ -357,22 +403,19 @@ describe("#idp-redirector/index", async () => {
         .reply(200, {});
     });
 
-    it("should load error_page from tenant settings", done => {
+    it("should NOT load error_page from tenant settings", done => {
       request(app)
         .get("/?state=bad")
         .send()
         .end(err => {
           if (err) return done(err);
 
-          sinon.assert.calledOnce(getTenantSettingsStub);
-          sinon.assert.calledWith(getTenantSettingsStub, {
-            fields: "error_page"
-          });
+          expect(getTenantSettingsStub).to.have.callCount(0);
           done();
         });
     });
 
-    it("should cache tenant error_page in global", async () => {
+    it("should NOT cache tenant error_page in global", async () => {
       for (const error of ["invalid_host", "invalid_request", "bad_request"]) {
         await request(app)
           .get("/?state=bad")
@@ -380,7 +423,7 @@ describe("#idp-redirector/index", async () => {
             error
           });
       }
-      sinon.assert.calledOnce(getTenantSettingsStub);
+      expect(getTenantSettingsStub).to.have.callCount(0);
     });
   });
 });

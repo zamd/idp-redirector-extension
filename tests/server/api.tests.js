@@ -3,24 +3,45 @@ const chai = require("chai");
 const sinon = require("sinon");
 const sinonChai = require("sinon-chai");
 const request = require("supertest");
-const { describe, it, before } = require("mocha");
+const { describe, it } = require("mocha");
 const express = require("express");
 const bodyParser = require("body-parser");
+const proxyquire = require("proxyquire").noCallThru();
 
 const config = require("../../server/lib/config");
-const api = require("../../server/routes/api");
 const expect = chai.expect;
+
+let Auth0ClientStub = {};
+const Auth0ExtentionToolsStub = {
+  middlewares: {
+    managementApiClient: () => (req, res, next) => {
+      req.auth0 = Auth0ClientStub;
+      next();
+    }
+  }
+};
+
+const api = proxyquire("../../server/routes/api", {
+  "auth0-extension-express-tools": Auth0ExtentionToolsStub
+});
 
 chai.use(sinonChai);
 
 describe("#idp-redirector/api", () => {
   const defaultConfig = require("../../server/config.json");
+  const fakeDataDogHost = "https://datadog.internal";
+  const fakeDataDogPath = "/v1/logs";
+  defaultConfig["DATADOG_URL"] = fakeDataDogHost + fakeDataDogPath;
   config.setProvider(key => defaultConfig[key], null);
 
   const storage = {
     read: sinon.stub(),
     write: sinon.stub()
   };
+
+  const errorPageUrl = "https://error.page";
+  const getTenantSettingsStub = sinon.stub();
+  Auth0ClientStub = { getTenantSettings: getTenantSettingsStub };
 
   const app = express();
 
@@ -34,18 +55,19 @@ describe("#idp-redirector/api", () => {
   });
   app.use("/api", api(storage));
 
-  before(() => {
-    nock("https://http-intake.logs.datadoghq.com")
-      .persist()
-      .post("/v1/input", () => true)
+  beforeEach(() => {
+    nock(fakeDataDogHost)
+      .post(fakeDataDogPath, () => true)
       .reply(200, {});
   });
 
   describe("PUT /api", () => {
-    describe("webtask storage working", () => {
+    describe("webtask storage and tenant settings working", () => {
       beforeEach(() => {
         storage.read.resolves({});
         sinon.resetHistory();
+
+        getTenantSettingsStub.resolves({ error_page: { url: errorPageUrl } });
       });
 
       it("Should write valid whitelist", done => {
@@ -123,6 +145,7 @@ describe("#idp-redirector/api", () => {
 
             expect(res.body).to.deep.equal(whiteListData);
             expect(storage.write).to.have.been.calledWithExactly({
+              errorPage: errorPageUrl,
               hostToPattern: expectedHostToPattern
             });
             done();
@@ -152,7 +175,7 @@ describe("#idp-redirector/api", () => {
               patterns: ["https://example.com*"]
             }
           ],
-          "pattern can not have a wildcard as part of the hostname: https://example.com*"
+          "[AE003] pattern can not have a wildcard as part of the hostname: https://example.com*"
         )
       );
 
@@ -165,7 +188,8 @@ describe("#idp-redirector/api", () => {
               patterns: ["https://example.com/path*/somethingelse"]
             }
           ],
-          '"value" at position 0 fails because [child "patterns" fails because ["patterns" at position 0 fails because ["0" with value "https:&#x2f;&#x2f;example.com&#x2f;path&#x2a;&#x2f;somethingelse" fails to match the required pattern: /^[^*]*\\*?$/]]]'
+          '[AE002] "value" at position 0 fails because [child "patterns" fails because ["patterns" at position 0' +
+            ' fails because ["0" with value "https:&#x2f;&#x2f;example.com&#x2f;path&#x2a;&#x2f;somethingelse" fails to match the required pattern: /^[^*]*\\*?$/]]]'
         )
       );
 
@@ -178,7 +202,7 @@ describe("#idp-redirector/api", () => {
               patterns: ["some non url"]
             }
           ],
-          "pattern must be in the format of a URL: some non url"
+          "[AE003] pattern must be in the format of a URL: some non url"
         )
       );
 
@@ -191,7 +215,8 @@ describe("#idp-redirector/api", () => {
               patterns: ["https://example.com"]
             }
           ],
-          '"value" at position 0 fails because [child "clientName" fails because ["clientName" is not allowed to be empty]]'
+          '[AE002] "value" at position 0 fails because [child "clientName" fails because ["clientName" is not allowed' +
+            " to be empty]]"
         )
       );
 
@@ -204,7 +229,7 @@ describe("#idp-redirector/api", () => {
               patterns: ["https://example.com"]
             }
           ],
-          '"value" at position 0 fails because [child "clientName" fails because ["clientName" must be a string]]'
+          '[AE002] "value" at position 0 fails because [child "clientName" fails because ["clientName" must be a string]]'
         )
       );
 
@@ -218,7 +243,7 @@ describe("#idp-redirector/api", () => {
               patterns: ["https://example.com"]
             }
           ],
-          "loginUrl must be in the format of a URL: not a url but longer than 10"
+          "[AE003] loginUrl must be in the format of a URL: not a url but longer than 10"
         )
       );
 
@@ -232,7 +257,7 @@ describe("#idp-redirector/api", () => {
               patterns: ["https://example.com"]
             }
           ],
-          '"value" at position 0 fails because ["someOtherKey" is not allowed]'
+          '[AE002] "value" at position 0 fails because ["someOtherKey" is not allowed]'
         )
       );
 
@@ -245,7 +270,7 @@ describe("#idp-redirector/api", () => {
               patterns: []
             }
           ],
-          '"value" at position 0 fails because [child "patterns" fails because ["patterns" does not contain 1 required value(s)]]'
+          '[AE002] "value" at position 0 fails because [child "patterns" fails because ["patterns" does not contain 1 required value(s)]]'
         )
       );
 
@@ -258,7 +283,7 @@ describe("#idp-redirector/api", () => {
 
             expect(res.body.error).to.equal("invalid_request");
             expect(res.body.error_description).to.equal(
-              '"value" must be an array'
+              '[AE002] "value" must be an array'
             );
             done();
           });
@@ -285,7 +310,7 @@ describe("#idp-redirector/api", () => {
 
             expect(res.body.error).to.equal("update_conflict");
             expect(res.body.error_description).to.equal(
-              "Can not override conflicting update, ensure you have the latest data and retry"
+              "[AE001] Can not override conflicting update, ensure you have the latest data and retry"
             );
             done();
           });
@@ -304,8 +329,41 @@ describe("#idp-redirector/api", () => {
 
             expect(res.body.error).to.equal("internal_error");
             expect(res.body.error_description).to.equal(
-              "Internal Server Error"
+              "[IE002] Internal Server Error"
             );
+            done();
+          });
+      });
+    });
+
+    describe("tenant settings failing", () => {
+      beforeEach(() => {
+        storage.read.resolves({});
+        storage.write.resolves();
+        sinon.resetHistory();
+      });
+
+      it("missing error page", done => {
+        getTenantSettingsStub.resolves({ error_page: {} });
+        const whiteListData = [
+          {
+            clientName: "client name",
+            patterns: ["https://url1.com"]
+          }
+        ];
+
+        request(app)
+          .put("/api")
+          .send(whiteListData)
+          .expect(400)
+          .end((err, res) => {
+            if (err) return done(err);
+            expect(res.body).to.deep.equal({
+              error: "no_error_page",
+              error_code: "AE005",
+              error_description:
+                "[AE005] Failed to fetch the error page from the tenant settings"
+            });
             done();
           });
       });
@@ -389,6 +447,110 @@ describe("#idp-redirector/api", () => {
           expect(res.body).to.deep.equal(expectedWhiteList);
           done();
         });
+    });
+  });
+
+  describe("PUT /api/errorPage", () => {
+    describe("tenant settings working", () => {
+      const expectedHostToPattern = { someKey: "someValue" };
+      beforeEach(() => {
+        storage.read.resolves({ hostToPattern: expectedHostToPattern });
+        storage.write.resolves();
+        sinon.resetHistory();
+      });
+
+      it("good error page", done => {
+        getTenantSettingsStub.resolves({ error_page: { url: errorPageUrl } });
+        const whiteListData = [
+          {
+            clientName: "client name",
+            patterns: ["https://url1.com"]
+          }
+        ];
+
+        request(app)
+          .put("/api/errorPage")
+          .send(whiteListData)
+          .expect(204)
+          .end(err => {
+            if (err) return done(err);
+
+            expect(storage.write).to.have.been.calledWithExactly({
+              errorPage: errorPageUrl,
+              hostToPattern: expectedHostToPattern
+            });
+            done();
+          });
+      });
+    });
+
+    describe("tenant settings failing", () => {
+      beforeEach(() => {
+        storage.read.resolves({});
+        storage.write.resolves();
+        sinon.resetHistory();
+      });
+
+      it("missing error page", done => {
+        getTenantSettingsStub.resolves({ error_page: {} });
+        const whiteListData = [
+          {
+            clientName: "client name",
+            patterns: ["https://url1.com"]
+          }
+        ];
+
+        request(app)
+          .put("/api/errorPage")
+          .send(whiteListData)
+          .expect(400)
+          .end((err, res) => {
+            if (err) return done(err);
+            expect(res.body).to.deep.equal({
+              error: "no_error_page",
+              error_code: "AE005",
+              error_description:
+                "[AE005] Failed to fetch the error page from the tenant settings"
+            });
+            done();
+          });
+      });
+
+      it("invalid error page", done => {
+        getTenantSettingsStub.resolves({
+          error_page: { url: "https://host.domain:1423garbage" }
+        });
+        request(app)
+          .put("/api/errorPage")
+          .expect(400)
+          .end((err, res) => {
+            if (err) return done(err);
+            expect(res.body).to.deep.equal({
+              error: "bad_error_page",
+              error_code: "AE004",
+              error_description:
+                "[AE004] Bad error page https://host.domain:1423garbage because: Invalid URL: https://host.domain:1423garbage"
+            });
+            done();
+          });
+      });
+
+      it("call to get error rejects", done => {
+        const error = new Error("bad call to get error page");
+        getTenantSettingsStub.rejects(error);
+        request(app)
+          .put("/api/errorPage")
+          .expect(500)
+          .end((err, res) => {
+            if (err) return done(err);
+            expect(res.body).to.deep.equal({
+              error: "internal_error",
+              error_code: "IE002",
+              error_description: "[IE002] Internal Server Error"
+            });
+            done();
+          });
+      });
     });
   });
 });

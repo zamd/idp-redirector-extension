@@ -36,7 +36,7 @@ module.exports = (cfg, storageProvider) => {
   });
 
   morgan.token("url", req => {
-    const query = JSON.parse(JSON.stringify(req.query));
+    const query = JSON.parse(JSON.stringify(req.query || {}));
     if (query.code) {
       query.code = "*****";
     }

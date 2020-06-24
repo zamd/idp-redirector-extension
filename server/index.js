@@ -35,19 +35,21 @@ module.exports = (cfg, storageProvider) => {
     next();
   });
 
-  morgan.token("url", req => {
-    const query = JSON.parse(JSON.stringify(req.query || {}));
-    if (query.code) {
-      query.code = "*****";
-    }
-    return req.path + querystring.stringify(query);
-  });
+  if (process.env.NODE_ENV !== "production") {
+    morgan.token("url", req => {
+      const query = JSON.parse(JSON.stringify(req.query || {}));
+      if (query.code) {
+        query.code = "*****";
+      }
+      return req.path + querystring.stringify(query);
+    });
 
-  app.use(
-    morgan(":method :url :status :response-time ms - :res[content-length]", {
-      stream: logger.stream
-    })
-  );
+    app.use(
+      morgan(":method :url :status :response-time ms - :res[content-length]", {
+        stream: logger.stream
+      })
+    );
+  }
   app.use(bodyParser.json({ limit: "500kb" }));
   app.use(bodyParser.urlencoded({ extended: false }));
 

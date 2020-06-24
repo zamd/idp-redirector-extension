@@ -6,7 +6,7 @@ In order to run this test, the tenant must be correctly preconfigured and idp_re
 
 1. Create a ZeroSSL or LetsEncrypt certificate for use in SAML connection
 2. Create a SAML connection using above cert
-3. Copy `cert.crt` and `private.key` to `__preprocessors__/cert` folder
+3. Copy `certificate.crt` and `private.key` to `__processors__/cert` folder
 4. Install the idp-redirector extension from this repo
 5. Setup idp-redirector application (created by the extension) as the target app for Idp Initiated login of SAML connection
 6. After these steps are done, save this tenant information in a .env file which

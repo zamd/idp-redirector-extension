@@ -26,7 +26,7 @@ module.exports = class YourCustomTransport extends Transport {
 
       await axios.post(url, info, {
         headers: { "DD-API-KEY": apiKey },
-        timeout: 5000 // no more than 5 seconds to wait
+        timeout: 1000 // no more than 1 seconds to wait
       });
     } catch (e) {
       console.error(

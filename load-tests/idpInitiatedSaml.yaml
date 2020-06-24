@@ -21,7 +21,22 @@ config:
           arrivalRate: 5
           maxVusers: 15
           name: "Warm up load (15 max users)"
-    prod: # test appliance cluster
+    testland: # test appliance cluster
+      target: "https://tr-loadtest.lab.testland.auth0.com"
+      phases:
+        - duration: 120
+          arrivalRate: 2
+          maxVusers: 5
+          name: "Warm up load for 2 mins"
+        - duration: 240
+          arrivalRate: 4
+          maxVusers: 10
+          name: "Sustained Normal load 4 mins"
+        - duration: 240
+          arrivalRate: 8
+          maxVusers: 20
+          name: "Sustained Peak load for 4 mins"
+    prod: # TR appliance cluster
       target: "https://tr-loadtest.lab.testland.auth0.com"
       phases:
         - duration: 120

@@ -4,14 +4,20 @@
   "description": "",
   "main": "processor.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "prod": "artillery run -e prod idpInitiatedSaml.yaml",
+    "testland": "artillery run -e testland idpInitiatedSaml.yaml",
+    "dev": "DOMAIN=mock.auth0.com artillery run -e dev idpInitiatedSaml.yaml",
+    "prod:debug": "DEBUG=* artillery run -e prod idpInitiatedSaml.yaml",
+    "testland:debug": "DEBUG=* artillery run -e testland idpInitiatedSaml.yaml",
+    "dev:debug": "DEBUG=* DOMAIN=mock.auth0.com artillery run -e dev idpInitiatedSaml.yaml"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "artillery": "^1.6.0",
     "dotenv": "^8.2.0",
     "nanoid": "^3.1.10",
-    "samlp": "^3.4.1"
+    "samlp": "^3.4.2"
   }
 }

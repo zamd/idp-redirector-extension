@@ -23,12 +23,16 @@ function generateSamlResponse(context, ee, next) {
 
   const certFile = path.join(__dirname, "./cert/certificate.crt");
   const keyFile = path.join(__dirname, "./cert/private.key");
+  const domain = context.vars.$processEnvironment.DOMAIN;
+  const connection = context.vars.$processEnvironment.CONNECTION;
+  const tenant = domain ? domain.split(".")[0] : "";
+
   samlp.getSamlResponse(
     {
       nameIdentifierProbes: ["id"],
       issuer: "https://loadtest.example.com/",
-      destination: `https://${context.vars.$processEnvironment.DOMAIN}/login/callback?connection=${context.vars.$processEnvironment.CONNECTION}`,
-      audience: `urn:auth0:${context.vars.$processEnvironment.TENANT}:${context.vars.$processEnvironment.CONNECTION}`,
+      destination: `https://${domain}/login/callback?connection=${connection}`,
+      audience: `urn:auth0:${tenant}:${connection}`,
       key: fs.readFileSync(keyFile, "utf-8"),
       cert: fs.readFileSync(certFile, "utf-8")
     },

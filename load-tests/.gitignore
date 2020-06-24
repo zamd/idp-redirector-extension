@@ -7,4 +7,5 @@ certificate.crt
 cert.crt
 .npmrc
 letsencrypt
-output.log
+*.log
+*.swp

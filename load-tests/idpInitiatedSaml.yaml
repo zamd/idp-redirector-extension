@@ -24,23 +24,23 @@ config:
     testland: # test appliance cluster
       target: "https://tr-loadtest.lab.testland.auth0.com"
       phases:
-        - duration: 60
+        - duration: 120
           arrivalRate: 1
           maxVusers: 5
           name: "Warm up load for 2 mins"
-        - duration: 30
+        - duration: 120
           arrivalRate: 2
           maxVusers: 10
           name: "Load at 2"
-        - duration: 30
+        - duration: 120
           arrivalRate: 3
           maxVusers: 15
           name: "Load at 3"
-        - duration: 30
+        - duration: 120
           arrivalRate: 4
           maxVusers: 20
           name: "Load at 4"
-        - duration: 30
+        - duration: 120
           arrivalRate: 5
           maxVusers: 25
           name: "Load at 5"

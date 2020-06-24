@@ -4,18 +4,20 @@
   "description": "",
   "main": "processor.js",
   "scripts": {
-    "prod": "artillery run -e prod idpInitiatedSaml.yaml",
+    "prod": "artillery run -o output.log -e prod idpInitiatedSaml.yaml",
+    "testland:output": "artillery run -o ./output.log -e testland idpInitiatedSaml.yaml",
     "testland": "artillery run -e testland idpInitiatedSaml.yaml",
-    "dev": "DOMAIN=mock.auth0.com artillery run -e dev idpInitiatedSaml.yaml",
-    "prod:debug": "DEBUG=* artillery run -e prod idpInitiatedSaml.yaml",
-    "testland:debug": "DEBUG=* artillery run -e testland idpInitiatedSaml.yaml",
-    "dev:debug": "DEBUG=* DOMAIN=mock.auth0.com artillery run -e dev idpInitiatedSaml.yaml"
+    "dev": "DOMAIN=mock.auth0.com artillery run -o output.log -e dev idpInitiatedSaml.yaml",
+    "prod:debug": "DEBUG=* artillery run -o output.log -e prod idpInitiatedSaml.yaml",
+    "testland:debug": "DEBUG=* artillery run -o output.log -e testland idpInitiatedSaml.yaml",
+    "dev:debug": "DEBUG=* DOMAIN=mock.auth0.com artillery run -o output.log -e dev idpInitiatedSaml.yaml"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "artillery": "^1.6.0",
+    "artillery-plugin-expect": "^1.3.0",
     "dotenv": "^8.2.0",
     "nanoid": "^3.1.10",
     "samlp": "^3.4.2"

@@ -2,5 +2,9 @@
 whitelist.json
 relayStates.json
 private.key
+private.key
+certificate.crt
+cert.crt
 .npmrc
 letsencrypt
+output.log

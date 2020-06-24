@@ -22,7 +22,7 @@ config:
           maxVusers: 15
           name: "Warm up load (15 max users)"
     prod: # test appliance cluster
-      target: "https://tr-loadtest.wt.lab.testland.auth0.com/idp-redirector/"
+      target: "https://tr-loadtest.lab.testland.auth0.com"
       phases:
         - duration: 120
           arrivalRate: 2

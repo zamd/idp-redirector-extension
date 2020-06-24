@@ -27,8 +27,16 @@ This will generate following two files:
 
 ##### Running test locally
 
-`DOMAIN=mock.auth0.com artillery run -e dev idpInitiatedSaml.yaml`
+#### Artillery Pro
+
+`artillery run -e dev idpInitiatedSaml.yaml`
 
 ##### Dubuging
 
-`DEBUG=* TENANT=keyc KEY_FILE=/Users/zulfiqar/certs/zulfiqar.dev/private.key CERT_FILE=/Users/zulfiqar/certs/zulfiqar.dev/certificate.crt DOMAIN=keyc.auth0.com CONNECTION=ArtilleryIdpInit artillery -e dev run idpInitiatedSaml.yaml`
+`DEBUG=* DOMAIN=keyc.auth0.com CONNECTION=ArtilleryIdpInit artillery -e dev run idpInitiatedSaml.yaml`
+
+#### Airstrike
+
+Airstrike currently doesn't support enviornments, so we have to seperate environment specfic config their own files and use the relevant config file when running tests.
+
+`airstrike run idpInitiatedSaml.yaml --config ./config.dev.yaml`

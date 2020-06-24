@@ -2,3 +2,4 @@
 whitelist.json
 relayStates.json
 private.key
+.npmrc

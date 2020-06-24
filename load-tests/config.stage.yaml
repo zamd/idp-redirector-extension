@@ -1,6 +1,10 @@
 config: # cloud
   target: "https://keyc.auth0.com"
-  processor: "./__processors__/"
+  processor: "../__processors__/index.js"
+  includeFiles:
+    - ./__processors__/cert/certificate.crt
+    - ./__processors__/cert/private.key
+    - ./.env
   phases:
     - duration: 120
       arrivalRate: 5

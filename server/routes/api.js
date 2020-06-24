@@ -20,6 +20,7 @@ module.exports = storage => {
     try {
       await storage.write(data);
       logger.debug("Whitelist and errorPage updated");
+      delete global.storageData;
     } catch (e) {
       throw e;
     }

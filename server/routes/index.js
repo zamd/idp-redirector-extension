@@ -10,10 +10,17 @@ const convertShortUrlBackToLongUrl = require("../lib/convertShortUrlToLongUrl");
 
 module.exports = storage => {
   const index = new Router();
+
   index.use(async (req, res, next) => {
-    const data = await storage.read();
-    req.hostToPattern = data.hostToPattern || {}; // don't need to fail if not initialized, everything will just fail
-    req.errorPage = data.errorPage; // don't need to fail if not initialized, everything will just fail
+    let storageData = global.storageData;
+    if (!storageData || !storageData.hostToPattern || !storageData.errorPage) {
+      logger.verbose("Fetching storage data from webtask storage");
+      storageData = await storage.read();
+      global.storageData = storageData;
+    }
+
+    req.hostToPattern = storageData.hostToPattern || {}; // don't need to fail if not initialized, everything will just fail
+    req.errorPage = storageData.errorPage; // don't need to fail if not initialized, everything will just fail
     next();
   });
 

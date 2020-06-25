@@ -87,7 +87,8 @@ module.exports = storage => {
             client_secret: config("AUTH0_CLIENT_SECRET"),
             redirect_uri,
             code: req.query.code
-          }
+          },
+          { timeout: 5000 }
         );
 
         if (!response.data || !response.data.id_token) {

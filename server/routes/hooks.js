@@ -119,7 +119,7 @@ module.exports = () => {
       { client_id: config("AUTH0_CLIENT_ID") },
       {
         app_type: "regular_web",
-        grant_types: ["authorization_code", "client_credentials"],
+        grant_types: ["implicit", "client_credentials"],
         callbacks: [config("PUBLIC_WT_URL")]
       }
     );

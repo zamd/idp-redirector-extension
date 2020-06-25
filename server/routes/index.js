@@ -1,4 +1,4 @@
-const axios = require("axios");
+// const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const { Router } = require("express");
 const { URL } = require("url");
@@ -75,45 +75,58 @@ module.exports = storage => {
     return res.redirect(url.href);
   };
 
-  const exchangeCodeMiddleware = async (req, res, next) => {
-    if (req.query && req.query.code) {
+  // const exchangeCodeMiddleware = async (req, res, next) => {
+  //   if (req.query && req.query.code) {
+  //     try {
+  //       const redirect_uri = config("PUBLIC_WT_URL");
+  //       const response = await axios.post(
+  //         `https://${config("AUTH0_DOMAIN")}/oauth/token`,
+  //         {
+  //           grant_type: "authorization_code",
+  //           client_id: config("AUTH0_CLIENT_ID"),
+  //           client_secret: config("AUTH0_CLIENT_SECRET"),
+  //           redirect_uri,
+  //           code: req.query.code
+  //         }
+  //       );
+  //
+  //       if (!response.data || !response.data.id_token) {
+  //         req.user_error = errors.code_exchange.missing_id_token;
+  //         next();
+  //       }
+  //
+  //       const idToken = response.data && response.data.id_token;
+  //       req.user = jwt.decode(idToken);
+  //     } catch (e) {
+  //       if (e.response && e.response.status === 403) {
+  //         req.user_error = errors.code_exchange.forbidden;
+  //       } else {
+  //         logger.verbose(`Error attempting to exchange code: ${e.message}`);
+  //         req.user_error = errors.code_exchange.internal;
+  //       }
+  //     }
+  //   }
+  //
+  //   next();
+  // };
+
+  const processIdTokenMiddleware = async (req, res, next) => {
+    if (req.body && req.body.id_token) {
       try {
-        const redirect_uri = config("PUBLIC_WT_URL");
-        const response = await axios.post(
-          `https://${config("AUTH0_DOMAIN")}/oauth/token`,
-          {
-            grant_type: "authorization_code",
-            client_id: config("AUTH0_CLIENT_ID"),
-            client_secret: config("AUTH0_CLIENT_SECRET"),
-            redirect_uri,
-            code: req.query.code
-          },
-          { timeout: 5000 }
-        );
-
-        if (!response.data || !response.data.id_token) {
-          req.user_error = errors.code_exchange.missing_id_token;
-          next();
-        }
-
-        const idToken = response.data && response.data.id_token;
+        const idToken = req.body.id_token;
         req.user = jwt.decode(idToken);
       } catch (e) {
-        if (e.response && e.response.status === 403) {
-          req.user_error = errors.code_exchange.forbidden;
-        } else {
-          logger.verbose(`Error attempting to exchange code: ${e.message}`);
-          req.user_error = errors.code_exchange.internal;
-        }
+        logger.verbose(`Error attempting to decode ID token: ${e.message}`);
+        req.user_error = errors.redirect.bad_id_token;
       }
     }
 
     next();
   };
 
-  index.get("/", exchangeCodeMiddleware, async (req, res) => {
-    req.query = req.query || {}; // defensive set of query
-    const state = req.query.state;
+  index.post("/", processIdTokenMiddleware, async (req, res) => {
+    req.body = req.body || {}; // defensive set of query
+    const state = req.body.state;
     if (!state) {
       return redirectToErrorPage(req, res, {
         code: errors.redirect.missing_state,
@@ -192,10 +205,10 @@ module.exports = storage => {
     }
 
     let errorParams = {};
-    if (req.query.error || req.query.error_description) {
+    if (req.body.error || req.body.error_description) {
       errorParams = {
-        error: req.query.error,
-        error_description: req.query.error_description
+        error: req.body.error,
+        error_description: req.body.error_description
       };
     } else if (req.user_error) {
       errorParams = {

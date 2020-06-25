@@ -44,6 +44,29 @@ config:
           arrivalRate: 5
           maxVusers: 25
           name: "Load at 5"
+    appliancetrial: # test appliance cluster: full HC
+      target: "https://tr-loadtest.appliance-trial.com"
+      phases:
+        - duration: 120
+          arrivalRate: 1
+          maxVusers: 5
+          name: "Warm up load for 2 mins"
+        - duration: 120
+          arrivalRate: 5
+          maxVusers: 25
+          name: "Load at 2"
+        - duration: 120
+          arrivalRate: 10
+          maxVusers: 50
+          name: "Load at 3"
+        - duration: 120
+          arrivalRate: 20
+          maxVusers: 100
+          name: "Load at 4"
+        - duration: 120
+          arrivalRate: 30
+          maxVusers: 150
+          name: "Load at 5"
     prod: # TR appliance cluster
       target: "https://tr-loadtest.lab.testland.auth0.com"
       phases:

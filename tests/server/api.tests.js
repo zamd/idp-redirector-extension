@@ -343,8 +343,33 @@ describe("#idp-redirector/api", () => {
         sinon.resetHistory();
       });
 
-      it("missing error page", done => {
+      it("missing error page url", done => {
         getTenantSettingsStub.resolves({ error_page: {} });
+        const whiteListData = [
+          {
+            clientName: "client name",
+            patterns: ["https://url1.com"]
+          }
+        ];
+
+        request(app)
+          .put("/api")
+          .send(whiteListData)
+          .expect(400)
+          .end((err, res) => {
+            if (err) return done(err);
+            expect(res.body).to.deep.equal({
+              error: "no_error_page",
+              error_code: "AE005",
+              error_description:
+                "[AE005] Failed to fetch the error page from the tenant settings"
+            });
+            done();
+          });
+      });
+
+      it("missing error page", done => {
+        getTenantSettingsStub.resolves({});
         const whiteListData = [
           {
             clientName: "client name",

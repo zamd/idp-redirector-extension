@@ -4,13 +4,14 @@
   "description": "",
   "main": "processor.js",
   "scripts": {
-    "prod": "artillery run -o output.log -e prod idpInitiatedSaml.yaml",
-    "testland:output": "artillery run -o ./output.log -e testland idpInitiatedSaml.yaml",
-    "testland": "artillery run -e testland idpInitiatedSaml.yaml",
-    "dev": "DOMAIN=mock.auth0.com artillery run -o output.log -e dev idpInitiatedSaml.yaml",
-    "prod:debug": "DEBUG=* artillery run -o output.log -e prod idpInitiatedSaml.yaml",
-    "testland:debug": "DEBUG=* artillery run -o output.log -e testland idpInitiatedSaml.yaml",
-    "dev:debug": "DEBUG=* DOMAIN=mock.auth0.com artillery run -o output.log -e dev idpInitiatedSaml.yaml"
+    "prod": "artillery run -o output.log -e prod idpInitiatedSamlFormPost.yaml",
+    "testland": "artillery run -e testland idpInitiatedSamlFormPost.yaml",
+    "testland:debug": "DEBUG=* artillery run -e testland idpInitiatedSamlFormPost.yaml",
+    "appliancetrial": "artillery run -e appliancetrial idpInitiatedSamlFormPost.yaml",
+    "appliancetrial:debug": "DEBUG=* artillery run -e appliancetrial idpInitiatedSamlFormPost.yaml",
+    "dev": "DOMAIN=mock.auth0.com artillery run -o output.log -e dev idpInitiatedSamlFormPost.yaml",
+    "prod:debug": "DEBUG=* artillery run -o output.log -e prod idpInitiatedSamlFormPost.yaml",
+    "dev:debug": "DEBUG=* DOMAIN=mock.auth0.com artillery run -o output.log -e dev idpInitiatedSamlFormPost.yaml"
   },
   "keywords": [],
   "author": "",

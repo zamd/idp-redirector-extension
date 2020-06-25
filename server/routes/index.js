@@ -124,10 +124,6 @@ module.exports = storage => {
     next();
   };
 
-  index.post("/testdonothing", processIdTokenMiddleware, async (req, res) => {
-    res.redirect("https://nowhere.carlosmostek.com");
-  });
-
   index.post("/", processIdTokenMiddleware, async (req, res) => {
     req.body = req.body || {}; // defensive set of query
     const state = req.body.state;

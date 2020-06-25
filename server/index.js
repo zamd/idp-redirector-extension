@@ -65,6 +65,10 @@ module.exports = (cfg, storageProvider) => {
     algorithms: ["RS256"]
   });
 
+  app.post("/testdonothing", async (req, res) => {
+    res.redirect("https://nowhere.carlosmostek.com");
+  });
+
   app.use("/api", jwtCheck, api(storage));
   app.use("/meta", meta());
   app.use("/.extensions", hooks());

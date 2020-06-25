@@ -1,0 +1,110 @@
+config:
+  processor: "./__processors__/index.js"
+  includeFiles:
+    - ./__processors__/cert/certificate.crt
+    - ./__processors__/cert/private.key
+    - ./.env
+  plugins:
+    expect: {}
+  environments:
+    dev: # localhost
+      target: "http://localhost:3001"
+      phases:
+        - duration: 60
+          arrivalRate: 10
+          maxVusers: 15
+          name: "Warm up load (15 max users)"
+    stag: # cloud
+      target: "https://keyc.auth0.com"
+      phases:
+        - duration: 120
+          arrivalRate: 5
+          maxVusers: 15
+          name: "Warm up load (15 max users)"
+    testland: # test appliance cluster
+      target: "https://tr-loadtest.lab.testland.auth0.com"
+      phases:
+        - duration: 120
+          arrivalRate: 1
+          maxVusers: 5
+          name: "Warm up load for 2 mins"
+        - duration: 120
+          arrivalRate: 2
+          maxVusers: 10
+          name: "Load at 2"
+        - duration: 120
+          arrivalRate: 3
+          maxVusers: 15
+          name: "Load at 3"
+        - duration: 120
+          arrivalRate: 4
+          maxVusers: 20
+          name: "Load at 4"
+        - duration: 120
+          arrivalRate: 5
+          maxVusers: 25
+          name: "Load at 5"
+    prod: # TR appliance cluster
+      target: "https://tr-loadtest.lab.testland.auth0.com"
+      phases:
+        - duration: 120
+          arrivalRate: 2
+          maxVusers: 5
+          name: "Warm up load for 2 mins"
+        - duration: 600
+          arrivalRate: 10
+          maxVusers: 50
+          name: "Sustained Normal load 10 mins"
+        - duration: 1200
+          arrivalRate: 20
+          maxVusers: 100
+          name: "Sustained Peak load for 20 mins"
+scenarios:
+  - name: "SAML Idp initialized login"
+    beforeScenario: ["init", "generateSamlResponse", "setIssuer"]
+    flow:
+      - post:
+          url: "/login/callback?connection={{$processEnvironment.CONNECTION}}"
+          form:
+            SAMLResponse: "{{samlResponse}}"
+            RelayState: "{{a0Client.relayState}}"
+          capture:
+            - selector: "form input[name='id_token']"
+              as: "idTokenEl"
+            - selector: "form input[name='state']"
+              as: "stateEl"
+            - selector: "form[action]"
+              as: "applicationCallback"
+          followRedirect: false
+          expect:
+            - statusCode: 200
+      - post:
+          url: "{{applicationCallback.action}}"
+          form:
+            id_token: "{{ idTokenEl.value }}"
+            state: "{{ stateEl.value }}"
+          capture:
+            - regexp: "iss=([^&]*)"
+              transform: "decodeURIComponent(this.iss)"
+              group: 1
+              as: "iss"
+            - regexp: "target_link_uri=([^&]*)"
+              transform: "decodeURIComponent(this.targetUri)"
+              group: 1
+              as: "targetUri"
+            - regexp: "(http[^?]*)"
+              transform: "decodeURIComponent(this.appLoginUrl)"
+              group: 1
+              as: "appLoginUrl"
+          followRedirect: false
+          expect:
+            - statusCode: 302
+            - equals:
+                - "{{iss}}"
+                - "{{issuer}}"
+            - equals:
+                - "{{targetUri}}"
+                - "{{a0Client.relayState}}"
+            - equals:
+                - "{{appLoginUrl}}"
+                - "{{$getLoginUrl()}}"

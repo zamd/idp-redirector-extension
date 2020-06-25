@@ -8,15 +8,14 @@ const logger = winston.createLogger({
       level: process.env.NODE_ENV === "production" ? "verbose" : "debug",
       handleExceptions: true,
       format: winston.format.combine(
-        //winston.format.errors({ stack: true }),
-        winston.format.colorize(),
+        // winston.format.colorize(),
         new Formatter({ includeID: false }),
         winston.format.printf(
           ({ date, level, stack, description, ...rest }) => {
             const errStack = stack ? `\n${stack}` : "";
             const meta =
               rest && Object.keys(rest).length
-                ? `\n${JSON.stringify(rest, undefined, 2)}`
+                ? `\n${JSON.stringify(rest)}`
                 : "";
             return `[${date}] ${level}: ${description} ${meta} ${errStack}`;
           }

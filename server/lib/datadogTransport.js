@@ -13,10 +13,10 @@ module.exports = class YourCustomTransport extends Transport {
   }
 
   async log(info, callback) {
-    setImmediate(() => {
-      this.emit("logged", info);
-    });
-
+    // setImmediate(() => {
+    //   this.emit("logged", info);
+    // });
+    //
     // Perform the writing to the remote service
     try {
       const url =

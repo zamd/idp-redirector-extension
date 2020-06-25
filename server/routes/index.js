@@ -124,6 +124,55 @@ module.exports = storage => {
     next();
   };
 
+  index.post("/testloadstorageonly", async (req, res) => {
+    const responseParams = {
+      iss: `https://${config("AUTH0_DOMAIN")}`,
+      target_link_uri: req.body.state
+    };
+
+    res.redirect(
+      "https://nowhere.carlosmostek.com" + querystring.stringify(responseParams)
+    );
+  });
+
+  index.post(
+    "/testloadstorageandidtoken",
+    processIdTokenMiddleware,
+    async (req, res) => {
+      const responseParams = {
+        iss: `https://${config("AUTH0_DOMAIN")}`,
+        target_link_uri: req.body.state
+      };
+
+      res.redirect(
+        "https://nowhere.carlosmostek.com" +
+          querystring.stringify(responseParams)
+      );
+    }
+  );
+
+  index.post(
+    "/testloadstorageandidtokenandlog",
+    processIdTokenMiddleware,
+    async (req, res) => {
+      const responseParams = {
+        iss: `https://${config("AUTH0_DOMAIN")}`,
+        target_link_uri: req.body.state
+      };
+
+      logger.info({
+        type: "redirector_successful_redirect",
+        description: "Successful Redirect",
+        req
+      });
+
+      res.redirect(
+        "https://nowhere.carlosmostek.com" +
+          querystring.stringify(responseParams)
+      );
+    }
+  );
+
   index.post("/", processIdTokenMiddleware, async (req, res) => {
     req.body = req.body || {}; // defensive set of query
     const state = req.body.state;

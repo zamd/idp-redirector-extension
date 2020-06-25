@@ -122,12 +122,12 @@ scenarios:
           followRedirect: false
           expect:
             - statusCode: 302
-            - equals:
-                - "{{iss}}"
-                - "{{issuer}}"
-            - equals:
-                - "{{targetUri}}"
-                - "{{a0Client.relayState}}"
-            - equals:
-                - "{{appLoginUrl}}"
-                - "{{$getLoginUrl()}}"
+#            - equals:
+#                - "{{iss}}"
+#                - "{{issuer}}"
+#            - equals:
+#                - "{{targetUri}}"
+#                - "{{a0Client.relayState}}"
+#            - equals:
+#                - "{{appLoginUrl}}"
+#                - "{{$getLoginUrl()}}"

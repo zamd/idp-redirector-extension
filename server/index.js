@@ -66,7 +66,14 @@ module.exports = (cfg, storageProvider) => {
   });
 
   app.post("/testdonothing", async (req, res) => {
-    res.redirect("https://nowhere.carlosmostek.com");
+    const responseParams = {
+      iss: `https://${config("AUTH0_DOMAIN")}`,
+      target_link_uri: req.body.state
+    };
+
+    res.redirect(
+      "https://nowhere.carlosmostek.com" + querystring.stringify(responseParams)
+    );
   });
 
   app.use("/api", jwtCheck, api(storage));

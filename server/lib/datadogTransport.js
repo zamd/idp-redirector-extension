@@ -1,7 +1,7 @@
 const Transport = require("winston-transport");
-const axios = require("axios");
-
+const axiosLib = require("axios");
 const config = require("./config");
+const HttpsAgent = require("agentkeepalive").HttpsAgent;
 
 //
 // Inherit from `winston-transport` so you can take advantage
@@ -13,16 +13,25 @@ module.exports = class YourCustomTransport extends Transport {
   }
 
   async log(info, callback) {
-    // setImmediate(() => {
-    //   this.emit("logged", info);
-    // });
-    //
+    setImmediate(() => {
+      this.emit("logged", info);
+    });
+
     // Perform the writing to the remote service
     try {
+      if (!global.keepaliveAgent) {
+        global.keepaliveAgent = new HttpsAgent({
+          timeout: 30000, // active socket keepalive for 60 seconds
+          freeSocketTimeout: 10000 // free socket keepalive for 30 seconds
+        });
+      }
+
+      const axios = axiosLib.create({ httpsAgent: global.keepaliveAgent });
+
+      const apiKey = config("DATADOG_API_KEY");
       const url =
         config("DATADOG_URL") ||
         "https://http-intake.logs.datadoghq.com/v1/input";
-      const apiKey = config("DATADOG_API_KEY");
 
       await axios.post(url, info, {
         headers: { "DD-API-KEY": apiKey },

@@ -1,12 +1,11 @@
 const axios = require("axios");
 const path = require("path");
 const nconf = require("nconf");
-const logger = require("./server/lib/logger");
 const server = require("./server");
 
 // Handle uncaught.
 process.on("uncaughtException", err => {
-  logger.verbose(err);
+  console.error(err);
 });
 
 // Initialize configuration.
@@ -45,8 +44,8 @@ if (process.env.NODE_ENV === "development") {
 
 app.listen(port, error => {
   if (error) {
-    logger.error(error);
+    console.error(`Got error during startup: ${error.message}`);
   } else {
-    logger.verbose(`Listening on http://localhost:${port}.`);
+    console.log(`Listening on http://localhost:${port}.`);
   }
 });

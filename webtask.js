@@ -5,7 +5,7 @@ const config = require("./server/lib/config");
 const logger = require("./server/lib/logger");
 
 process.on("uncaughtException", err => {
-  logger.verbose(err);
+  console.error(err);
 });
 
 const createServer = tools.createServer((cfg, storage) => {

@@ -6,7 +6,7 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.Console({
       level: process.env.NODE_ENV === "production" ? "verbose" : "debug",
-      handleExceptions: true,
+      handleExceptions: false,
       format: winston.format.combine(
         // winston.format.colorize(),
         new Formatter({ includeID: false }),
@@ -24,7 +24,7 @@ const logger = winston.createLogger({
     }),
     new DatadogTransport({
       level: "info",
-      handleExceptions: true,
+      handleExceptions: false,
       format: new Formatter({ includeID: true })
     })
   ],

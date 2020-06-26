@@ -5,7 +5,10 @@ const Formatter = require("./loggerFormat");
 const logger = winston.createLogger({
   transports: [
     new winston.transports.Console({
-      level: process.env.NODE_ENV === "production" ? "verbose" : "debug",
+      level:
+        process.env.NODE_ENV === "production"
+          ? /* Switch back to verbose "verbose" */ "debug"
+          : "debug",
       handleExceptions: false,
       format: winston.format.combine(
         // winston.format.colorize(),

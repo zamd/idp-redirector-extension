@@ -14,7 +14,7 @@ module.exports = storage => {
   const api = new Router();
 
   const writeToStorage = async (errorPage, hostToPattern) => {
-    const data = await storage.read();
+    const data = (await storage.read()) || {};
     if (errorPage) data.errorPage = errorPage;
     if (hostToPattern) data.hostToPattern = hostToPattern;
     try {
@@ -233,6 +233,7 @@ module.exports = storage => {
 
       try {
         const errorPage = await getErrorPage(req, res);
+        logger.debug(`Got error page ${errorPage}`);
         if (!errorPage) return; // Response has already been created
 
         await writeToStorage(errorPage, hostToPattern);
@@ -259,7 +260,7 @@ module.exports = storage => {
           req,
           type: "redirector_failed_PUT",
           description: `Could not update storage because: ${e.message}`,
-          error_code: errors.api.could_not_update_storage
+          error_code: errors.internal.could_not_update_storage
         });
 
         return respondWithError(res, 500, {

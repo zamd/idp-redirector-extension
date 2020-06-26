@@ -37,7 +37,7 @@ module.exports = storage => {
     let errorUrl = null;
     try {
       const { error_page } = await req.auth0.getTenantSettings({
-        fields: "error_page"
+        // fields: "error_page"
       });
 
       if (error_page) errorUrl = error_page.url;

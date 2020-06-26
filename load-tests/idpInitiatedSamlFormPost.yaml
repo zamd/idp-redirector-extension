@@ -44,8 +44,8 @@ config:
           arrivalRate: 5
           maxVusers: 25
           name: "Load at 5"
-    appliancetrial: # test appliance cluster: full HC
-      target: "https://tr-loadtest.appliance-trial.com"
+    fullcluster: # test appliance cluster: full HC
+      target: "https://trd.appliance-trial.com"
       phases:
         - duration: 120
           arrivalRate: 1

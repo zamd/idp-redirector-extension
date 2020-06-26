@@ -5,6 +5,7 @@
   "main": "processor.js",
   "scripts": {
     "prod": "artillery run -o output.log -e prod idpInitiatedSamlFormPost.yaml",
+    "tehsis": "artillery run -e tehsis idpInitiatedSamlFormPost.yaml",
     "testland": "artillery run -e testland idpInitiatedSamlFormPost.yaml",
     "testland:debug": "DEBUG=* artillery run -e testland idpInitiatedSamlFormPost.yaml",
     "fullcluster": "artillery run -e fullcluster idpInitiatedSamlFormPost.yaml",

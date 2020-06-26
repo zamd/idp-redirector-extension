@@ -34,20 +34,26 @@ module.exports = storage => {
   };
 
   const getErrorPage = async (req, res) => {
-    const {
-      error_page: { url: errorUrl }
-    } = await req.auth0.getTenantSettings({
-      fields: "error_page"
-    });
-
-    if (!errorUrl) {
-      respondWithError(res, 400, {
-        error: "no_error_page",
-        error_code: errors.api.missing_error_page,
-        error_description:
-          "Failed to fetch the error page from the tenant settings"
+    let errorUrl = null;
+    try {
+      const { error_page } = await req.auth0.getTenantSettings({
+        fields: "error_page"
       });
 
+      if (error_page) errorUrl = error_page.url;
+
+      if (!errorUrl) {
+        respondWithError(res, 400, {
+          error: "no_error_page",
+          error_code: errors.api.missing_error_page,
+          error_description:
+            "Failed to fetch the error page from the tenant settings"
+        });
+
+        return;
+      }
+    } catch (e) {
+      console.error(`Bad error from getTenantSettings: ${e.message}`, e);
       return;
     }
 

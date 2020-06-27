@@ -14,8 +14,8 @@ module.exports = storage => {
   const api = new Router();
 
   const writeToStorage = async (errorPage, hostToPattern) => {
-    const data = (await storage.read()) || {};
-    if (errorPage) data.errorPage = errorPage;
+    const data = await storage.read();
+    data.errorPage = errorPage;
     if (hostToPattern) data.hostToPattern = hostToPattern;
     try {
       await storage.write(data);
@@ -53,7 +53,18 @@ module.exports = storage => {
         return;
       }
     } catch (e) {
-      console.error(`Bad error from getTenantSettings: ${e.message}`, e);
+      logger.error({
+        req,
+        type: "failed_PUT_error_page",
+        description: `Could not call management API because: ${e.message}`,
+        error_code: errors.internal.failed_fetching_error_page
+      });
+
+      respondWithError(res, 500, {
+        error: "internal_error",
+        error_code: errors.internal.failed_fetching_error_page,
+        error_description: "Internal Server Error"
+      });
       return;
     }
 
@@ -131,7 +142,7 @@ module.exports = storage => {
 
         logger.error({
           req,
-          type: "failed_PUT",
+          type: "failed_PUT_error_page",
           description: `Could not update storage because: ${e.message}`,
           error_code: errors.internal.could_not_update_storage
         });

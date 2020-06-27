@@ -13,7 +13,8 @@ module.exports = {
   },
   internal: {
     error_page_not_configured: "IE001",
-    could_not_update_storage: "IE002"
+    could_not_update_storage: "IE002",
+    failed_fetching_error_page: "IE003"
   },
   redirect: {
     missing_state: "RE001",

@@ -1,5 +1,6 @@
 const { Router: router } = require("express");
 const { middlewares } = require("auth0-extension-express-tools");
+const Promise = require("bluebird");
 
 const config = require("../lib/config");
 const logger = require("../lib/logger");
@@ -28,62 +29,103 @@ module.exports = () => {
   hooks.delete("/on-uninstall", async (req, res) => {
     logger.debug("Uninstall running version 0.0.1 ...");
     try {
-      const getClientGrants = req.auth0.getClientGrants({
-        audience: config("EXTENSION_AUDIENCE")
-      });
-      const getRules = req.auth0.getRules({
-        fields: "name,id"
-      });
+      const getClients = Promise.resolve(
+        req.auth0.getClients({
+          name: config("DEPLOYMENT_CLIENT_NAME")
+        })
+      );
 
-      const [clientGrants, rules] = await Promise.all([
-        getClientGrants,
-        getRules
-      ]);
+      const getRules = Promise.resolve(
+        req.auth0.getRules({
+          fields: "name,id"
+        })
+      );
+
+      const [clientsResult, rulesResult] = await Promise.all(
+        [getClients, getRules].map(promise => promise.reflect())
+      );
+
+      const rules = rulesResult.isFulfilled() ? rulesResult.value() || [] : [];
+      const clients = clientsResult.isFulfilled()
+        ? clientsResult.value() || []
+        : [];
 
       const denyUserAccessRule = rules.find(
         rule => rule.name === DENY_USER_ACCESS_RULE_NAME
       );
-      const [clientGrant] = clientGrants;
+
+      const deleteClients = clients.map(client =>
+        Promise.resolve(
+          req.auth0.deleteClient({
+            client_id: client.client_id
+          })
+        )
+      );
 
       const deleteDenyUserAccessRule = denyUserAccessRule
-        ? req.auth0.deleteRule({ id: denyUserAccessRule.id })
+        ? Promise.resolve(req.auth0.deleteRule({ id: denyUserAccessRule.id }))
         : Promise.resolve();
 
-      const deleteExtensionClient = req.auth0.deleteClient({
-        client_id: config("AUTH0_CLIENT_ID")
-      });
+      const deleteExtensionClient = Promise.resolve(
+        req.auth0.deleteClient({
+          client_id: config("AUTH0_CLIENT_ID")
+        })
+      );
 
-      const deleteDeploymentClient =
-        clientGrant && clientGrant.client_id
-          ? req.auth0.deleteClient({ client_id: clientGrant.client_id })
-          : Promise.resolve();
+      const deleteAudience = Promise.resolve(
+        req.auth0.deleteResourceServer({
+          id: encodeURIComponent(config("EXTENSION_AUDIENCE")) // bug in auth0.js doesn't do encoding and fails with 404
+        })
+      );
 
-      const deleteAudience = req.auth0.deleteResourceServer({
-        id: encodeURIComponent(config("EXTENSION_AUDIENCE")) // bug in auth0.js doesn't do encoding and fails with 404
-      });
+      const results = await Promise.all(
+        [
+          deleteExtensionClient,
+          deleteAudience,
+          deleteDenyUserAccessRule,
+          ...deleteClients
+        ].map(promise => promise.reflect())
+      );
 
-      await Promise.all([
-        deleteExtensionClient,
-        deleteDeploymentClient,
-        deleteAudience,
-        deleteDenyUserAccessRule
-      ]);
-
-      logger.debug(`Deleted Extension Client: ${config("AUTH0_CLIENT_ID")}`);
-      if (clientGrant) {
-        logger.debug(`Deleted Deployment Client: ${clientGrant.client_id}`);
+      if (results[0].isFulfilled()) {
+        logger.debug(`Deleted Extension Client: ${config("AUTH0_CLIENT_ID")}`);
+      } else {
+        logger.verbose(
+          `Error deleting extension client: ${results[0].reason().message}`
+        );
       }
-      logger.debug(`Deleted API: ${config("EXTENSION_AUDIENCE")}`);
+
+      if (results[1].isFulfilled()) {
+        logger.debug(`Deleted API: ${config("EXTENSION_AUDIENCE")}`);
+      } else {
+        logger.verbose(`Error deleting API: ${results[1].reason().message}`);
+      }
+
       if (denyUserAccessRule) {
-        logger.debug(`Deleted Rule: ${denyUserAccessRule.name}`);
+        if (results[2].isFulfilled()) {
+          logger.debug(`Deleted Rule: ${denyUserAccessRule.name}`);
+        } else {
+          logger.verbose(`Error deleting Rule: ${results[2].reason().message}`);
+        }
+      }
+
+      if (clients.length > 0) {
+        let index = 3;
+        clients.forEach(client => {
+          if (results[index].isFulfilled()) {
+            logger.debug(`Deleted Deployment Client: ${client.client_id}`);
+          } else {
+            logger.verbose(
+              `Error deleting client ${client.client_id}: ${
+                results[index].reason().message
+              }`
+            );
+          }
+          index += 1;
+        });
       }
     } catch (error) {
-      logger.debug(
-        `Error deleting extension resources: ${
-          error.message ? error.message : ""
-        }`
-      );
-      logger.verbose(error);
+      logger.verbose(`Error deleting extension resources: ${error.message}`);
     } finally {
       res.sendStatus(204);
     }
@@ -120,7 +162,11 @@ module.exports = () => {
       {
         app_type: "regular_web",
         grant_types: ["implicit", "client_credentials"],
-        callbacks: [config("PUBLIC_WT_URL")]
+        callbacks: [config("PUBLIC_WT_URL")],
+        jwt_configuration: {
+          lifetime_in_seconds: 30,
+          alg: "HS256"
+        }
       }
     );
 
@@ -158,11 +204,7 @@ module.exports = () => {
       logger.verbose(`Created Rule: ${denyUserAccessRule.name}`);
       return res.sendStatus(204);
     } catch (error) {
-      logger.debug(
-        `Error creating extension resources: ${
-          error.message ? error.message : ""
-        }`
-      );
+      logger.verbose(`Error creating extension resources: ${error.message}`);
       logger.verbose(error);
 
       // Even if deleting fails, we need to be able to uninstall the extension.

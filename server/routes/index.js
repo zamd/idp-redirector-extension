@@ -75,46 +75,14 @@ module.exports = storage => {
     return res.redirect(url.href);
   };
 
-  // const exchangeCodeMiddleware = async (req, res, next) => {
-  //   if (req.query && req.query.code) {
-  //     try {
-  //       const redirect_uri = config("PUBLIC_WT_URL");
-  //       const response = await axios.post(
-  //         `https://${config("AUTH0_DOMAIN")}/oauth/token`,
-  //         {
-  //           grant_type: "authorization_code",
-  //           client_id: config("AUTH0_CLIENT_ID"),
-  //           client_secret: config("AUTH0_CLIENT_SECRET"),
-  //           redirect_uri,
-  //           code: req.query.code
-  //         }
-  //       );
-  //
-  //       if (!response.data || !response.data.id_token) {
-  //         req.user_error = errors.code_exchange.missing_id_token;
-  //         next();
-  //       }
-  //
-  //       const idToken = response.data && response.data.id_token;
-  //       req.user = jwt.decode(idToken);
-  //     } catch (e) {
-  //       if (e.response && e.response.status === 403) {
-  //         req.user_error = errors.code_exchange.forbidden;
-  //       } else {
-  //         logger.verbose(`Error attempting to exchange code: ${e.message}`);
-  //         req.user_error = errors.code_exchange.internal;
-  //       }
-  //     }
-  //   }
-  //
-  //   next();
-  // };
-
   const processIdTokenMiddleware = async (req, res, next) => {
     if (req.body && req.body.id_token) {
       try {
         const idToken = req.body.id_token;
-        req.user = jwt.decode(idToken);
+        req.user = await jwt.verify(idToken, config("AUTH0_CLIENT_SECRET"), {
+          audience: config("AUTH0_CLIENT_ID"),
+          issuer: `https://${config("AUTH0_DOMAIN")}`
+        });
       } catch (e) {
         logger.verbose(`Error attempting to decode ID token: ${e.message}`);
         req.user_error = errors.redirect.bad_id_token;
@@ -123,55 +91,6 @@ module.exports = storage => {
 
     next();
   };
-
-  index.post("/testloadstorageonly", async (req, res) => {
-    const responseParams = {
-      iss: `https://${config("AUTH0_DOMAIN")}`,
-      target_link_uri: req.body.state
-    };
-
-    res.redirect(
-      "https://nowhere.carlosmostek.com" + querystring.stringify(responseParams)
-    );
-  });
-
-  index.post(
-    "/testloadstorageandidtoken",
-    processIdTokenMiddleware,
-    async (req, res) => {
-      const responseParams = {
-        iss: `https://${config("AUTH0_DOMAIN")}`,
-        target_link_uri: req.body.state
-      };
-
-      res.redirect(
-        "https://nowhere.carlosmostek.com" +
-          querystring.stringify(responseParams)
-      );
-    }
-  );
-
-  index.post(
-    "/testloadstorageandidtokenandlog",
-    processIdTokenMiddleware,
-    async (req, res) => {
-      const responseParams = {
-        iss: `https://${config("AUTH0_DOMAIN")}`,
-        target_link_uri: req.body.state
-      };
-
-      logger.info({
-        type: "redirector_successful_redirect",
-        description: "Successful Redirect",
-        req
-      });
-
-      res.redirect(
-        "https://nowhere.carlosmostek.com" +
-          querystring.stringify(responseParams)
-      );
-    }
-  );
 
   index.post("/", processIdTokenMiddleware, async (req, res) => {
     req.body = req.body || {}; // defensive set of query
@@ -196,7 +115,7 @@ module.exports = storage => {
       if (!clientPatterns) {
         return redirectToErrorPage(req, res, {
           code: errors.redirect.state_invalid_host,
-          error: "invalid_host",
+          error: "invalid_request",
           error_description: `Invalid host in state url: ${state}`
         });
       }
@@ -262,7 +181,7 @@ module.exports = storage => {
     } else if (req.user_error) {
       errorParams = {
         error: "invalid_request",
-        error_description: `[${req.user_error}] Invalid User Code`
+        error_description: `[${req.user_error}] Invalid User Token`
       };
     }
 

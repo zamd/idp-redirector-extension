@@ -46,9 +46,9 @@ describe("#idp-redirector/index", async () => {
   };
 
   const app = express();
-  app.use("/", index(storage));
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
+  app.use("/", index(storage));
   app.use((req, res, next) => {
     req.user = {
       scope: "read:patterns update:patterns"
@@ -56,11 +56,33 @@ describe("#idp-redirector/index", async () => {
     next();
   });
   app.use("/api", api(storage));
-  const baseUri = config("PUBLIC_WT_URL");
 
-  let goodCode, badCode, missingIdTokenCode;
-  const exampleUserId = "someuserid";
   const issuer = `https://${defaultConfig.AUTH0_DOMAIN}`;
+  const exampleUserId = "someuserid";
+
+  const createToken = (overrideClaims, secret) => {
+    return jwt.sign(
+      Object.assign(
+        {
+          sub: exampleUserId,
+          aud: defaultConfig.AUTH0_CLIENT_ID,
+          iss: issuer,
+          iat: Date.now() / 1000,
+          exp: Date.now() / 1000 + 3600
+        },
+        overrideClaims
+      ),
+      secret || defaultConfig.AUTH0_CLIENT_SECRET
+    );
+  };
+
+  const goodToken = createToken({});
+  const badToken = "not even a token";
+  const badSignatureToken = createToken({}, "shhhh");
+  const badIssuerToken = createToken({ iss: "not auth0" });
+  const badAudienceToken = createToken({ aud: "not this client" });
+  const badExpirationToken = createToken({ exp: Date.now() / 1000 - 1000000 });
+  const badIssuedTimeToken = createToken({ nbf: Date.now() / 1000 + 1800 });
 
   const errorPageUrl = "https://error.page";
 
@@ -82,11 +104,19 @@ describe("#idp-redirector/index", async () => {
         {
           clientName: "client name",
           loginUrl: "https://url1.com/login",
-          patterns: ["https://url1.com", "https://url1.com/withPath*"]
+          patterns: ["https://url1.com/withPath*", "https://url1.com"]
         },
         {
           patterns: ["https://url2.com?*"],
           clientName: "client 2"
+        },
+        {
+          clientName: "client name 3",
+          patterns: [
+            "https://url1.com/client3",
+            "https://url1.com/client3/*",
+            "https://url1.com/client3?*"
+          ]
         }
       ])
       .end(err => {
@@ -101,56 +131,6 @@ describe("#idp-redirector/index", async () => {
   });
 
   describe("GET /", () => {
-    beforeEach(() => {
-      goodCode = "goodcode";
-      badCode = "badcode";
-      missingIdTokenCode = "missingcode";
-
-      nock(issuer)
-        .post("/oauth/token", {
-          grant_type: "authorization_code",
-          client_id: defaultConfig.AUTH0_CLIENT_ID,
-          client_secret: defaultConfig.AUTH0_CLIENT_SECRET,
-          redirect_uri: baseUri,
-          code: goodCode
-        })
-        .reply(200, {
-          id_token: jwt.sign(
-            {
-              sub: exampleUserId,
-              aud: defaultConfig.AUTH0_CLIENT_ID,
-              iss: issuer,
-              iat: Date.now(),
-              exp: Date.now() + 3600
-            },
-            "shhhhh"
-          )
-        });
-
-      nock(issuer)
-        .post("/oauth/token", {
-          grant_type: "authorization_code",
-          client_id: defaultConfig.AUTH0_CLIENT_ID,
-          client_secret: defaultConfig.AUTH0_CLIENT_SECRET,
-          redirect_uri: baseUri,
-          code: badCode
-        })
-        .reply(403, {
-          error: "invalid_grant",
-          error_description: "Invalid authorization code"
-        });
-
-      nock(issuer)
-        .post("/oauth/token", {
-          grant_type: "authorization_code",
-          client_id: defaultConfig.AUTH0_CLIENT_ID,
-          client_secret: defaultConfig.AUTH0_CLIENT_SECRET,
-          redirect_uri: baseUri,
-          code: missingIdTokenCode
-        })
-        .reply(200, {});
-    });
-
     describe("good logger", () => {
       beforeEach(() => {
         nock(fakeDataDogHost)
@@ -161,12 +141,11 @@ describe("#idp-redirector/index", async () => {
       it("should redirect to loginUrl with correct parameters", done => {
         const targetUrl = "https://url1.com/withPath/abc?q=xyz";
         request(app)
-          .get("/")
-          .query({
+          .post("/")
+          .send({
             state: targetUrl,
-            code: goodCode
+            id_token: goodToken
           })
-          .send()
           .expect(302)
           .end((err, res) => {
             if (err) return done(err);
@@ -187,14 +166,40 @@ describe("#idp-redirector/index", async () => {
       });
 
       it("should redirect to state with correct parameters", done => {
+        const targetUrl = "https://url1.com/client3";
+        request(app)
+          .post("/")
+          .send({
+            state: targetUrl,
+            code: goodToken
+          })
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"]);
+
+            expect(target.origin).to.equal("https://url1.com");
+            expect(target.pathname).to.equal("/client3");
+            expect(target.searchParams.get("target_link_uri")).to.be.equal(
+              targetUrl
+            );
+            expect(target.searchParams.get("iss")).to.be.equal(
+              `https://${config("AUTH0_DOMAIN")}`
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to state with correct parameters: second match", done => {
         const targetUrl = "https://url2.com?q=xyz";
         request(app)
-          .get("/")
-          .query({
+          .post("/")
+          .send({
             state: targetUrl,
-            code: goodCode
+            code: goodToken
           })
-          .send()
           .expect(302)
           .end((err, res) => {
             if (err) return done(err);
@@ -218,13 +223,12 @@ describe("#idp-redirector/index", async () => {
       it("should redirect to loginUrl with error & error_description", done => {
         const targetUrl = "https://url1.com/withPath/abc?q=xyz";
         request(app)
-          .get("/")
-          .query({
+          .post("/")
+          .send({
             state: targetUrl,
             error: "invalid_client",
             error_description: "invalid client"
           })
-          .send()
           .expect(302)
           .end((err, res) => {
             if (err) return done(err);
@@ -251,12 +255,82 @@ describe("#idp-redirector/index", async () => {
           });
       });
 
-      it("should redirect to /error when state url doesn't match whitelist", done => {
+      it("should redirect to /error when state url doesn't match any host", done => {
         request(app)
-          .get("/")
-          .query({
+          .post("/")
+          .send({
             state: "https://example.com/login/callback"
           })
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"], "https://x.com");
+
+            expect(target.origin).to.equal(errorPageUrl);
+            expect(target.pathname).to.equal("/");
+            expect(target.searchParams.get("error")).to.be.equal(
+              "invalid_request"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "[RE002] Invalid host in state url: https://example.com/login/callback"
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to /error when state url doesn't match any pattern", done => {
+        request(app)
+          .post("/")
+          .send({
+            state: "https://url1.com/wrongPath"
+          })
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"], "https://x.com");
+
+            expect(target.origin).to.equal(errorPageUrl);
+            expect(target.pathname).to.equal("/");
+            expect(target.searchParams.get("error")).to.be.equal(
+              "invalid_request"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "[RE003] state must match a valid whitelist pattern: https://url1.com/wrongPath"
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to /error when state is not supplied", done => {
+        request(app)
+          .post("/")
+          .send({})
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"], "https://x.com");
+
+            expect(target.origin).to.equal(errorPageUrl);
+            expect(target.pathname).to.equal("/");
+            expect(target.searchParams.get("error")).to.be.equal(
+              "invalid_request"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "[RE001] Missing state parameter"
+            );
+
+            done();
+          });
+      });
+
+      it("should redirect to /error when nothing is supplied", done => {
+        request(app)
+          .post("/")
           .send()
           .expect(302)
           .end((err, res) => {
@@ -267,22 +341,24 @@ describe("#idp-redirector/index", async () => {
             expect(target.origin).to.equal(errorPageUrl);
             expect(target.pathname).to.equal("/");
             expect(target.searchParams.get("error")).to.be.equal(
-              "invalid_host"
+              "invalid_request"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "[RE001] Missing state parameter"
             );
 
             done();
           });
       });
 
-      it("should redirect to loginUrl with an error when we use a bad code", done => {
+      const testBadErrorCode = (token, done) => {
         const targetUrl = "https://url1.com/withPath/abc?q=xyz";
         request(app)
-          .get("/")
-          .query({
+          .post("/")
+          .send({
             state: targetUrl,
-            code: badCode
+            id_token: token
           })
-          .send()
           .expect(302)
           .end((err, res) => {
             if (err) return done(err);
@@ -295,68 +371,25 @@ describe("#idp-redirector/index", async () => {
               "invalid_request"
             );
             expect(target.searchParams.get("error_description")).to.be.equal(
-              "[CE001] Invalid User Code"
+              "[RE007] Invalid User Token"
             );
 
             done();
           });
-      });
+      };
 
-      it("should redirect to loginUrl with an error when we don't get an id token", done => {
-        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-        request(app)
-          .get("/")
-          .query({
-            state: targetUrl,
-            code: missingIdTokenCode
-          })
-          .send()
-          .expect(302)
-          .end((err, res) => {
-            if (err) return done(err);
-
-            const target = new URL(res.headers["location"], "https://x.com");
-
-            expect(target.origin).to.equal("https://url1.com");
-            expect(target.pathname).to.equal("/login");
-            expect(target.searchParams.get("error")).to.be.equal(
-              "invalid_request"
-            );
-            expect(target.searchParams.get("error_description")).to.be.equal(
-              "[CE002] Invalid User Code"
-            );
-
-            done();
-          });
-      });
-
-      it("should redirect to loginUrl with an error when oauth token fails with 500", done => {
-        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
-        request(app)
-          .get("/")
-          .query({
-            state: targetUrl,
-            code: "some code without a nock"
-          })
-          .send()
-          .expect(302)
-          .end((err, res) => {
-            if (err) return done(err);
-
-            const target = new URL(res.headers["location"], "https://x.com");
-
-            expect(target.origin).to.equal("https://url1.com");
-            expect(target.pathname).to.equal("/login");
-            expect(target.searchParams.get("error")).to.be.equal(
-              "invalid_request"
-            );
-            expect(target.searchParams.get("error_description")).to.be.equal(
-              "[CE003] Invalid User Code"
-            );
-
-            done();
-          });
-      });
+      it("should redirect to loginUrl with an error when we use a bad token: not a token", done =>
+        testBadErrorCode(badToken, done));
+      it("should redirect to loginUrl with an error when we use a bad token: bad audience", done =>
+        testBadErrorCode(badAudienceToken, done));
+      it("should redirect to loginUrl with an error when we use a bad token: bad expiration", done =>
+        testBadErrorCode(badExpirationToken, done));
+      it("should redirect to loginUrl with an error when we use a bad token: bad iat", done =>
+        testBadErrorCode(badIssuedTimeToken, done));
+      it("should redirect to loginUrl with an error when we use a bad token: bad iss", done =>
+        testBadErrorCode(badIssuerToken, done));
+      it("should redirect to loginUrl with an error when we use a bad token: bad signature", done =>
+        testBadErrorCode(badSignatureToken, done));
     });
 
     describe("bad logger", () => {
@@ -369,12 +402,11 @@ describe("#idp-redirector/index", async () => {
       it("should redirect to loginUrl with correct parameters: even if datadog logging fails", done => {
         const targetUrl = "https://url1.com/withPath/abc?q=xyz";
         request(app)
-          .get("/")
-          .query({
+          .post("/")
+          .send({
             state: targetUrl,
-            code: goodCode
+            token: goodToken
           })
-          .send()
           .expect(302)
           .end((err, res) => {
             if (err) return done(err);
@@ -405,8 +437,10 @@ describe("#idp-redirector/index", async () => {
 
     it("should NOT load error_page from tenant settings", done => {
       request(app)
-        .get("/?state=bad")
-        .send()
+        .post("/")
+        .send({
+          state: "bad"
+        })
         .end(err => {
           if (err) return done(err);
 
@@ -418,12 +452,40 @@ describe("#idp-redirector/index", async () => {
     it("should NOT cache tenant error_page in global", async () => {
       for (const error of ["invalid_host", "invalid_request", "bad_request"]) {
         await request(app)
-          .get("/?state=bad")
-          .query({
-            error
+          .post("/")
+          .send({
+            error,
+            state: "bad"
           });
       }
       expect(getTenantSettingsStub).to.have.callCount(0);
+    });
+
+    it("should throw error if errorPage is not configured", done => {
+      storage.data.errorPage = undefined;
+
+      request(app)
+        .post("/")
+        .send({
+          state: "bad",
+          id_token: goodToken
+        })
+        .expect(500)
+        .end((err, res) => {
+          if (err) return done(err);
+
+          expect(res.text).to.equal(
+            JSON.stringify(
+              {
+                error: "internal_error",
+                error_description: "[IE001] Internal Server Error"
+              },
+              null,
+              2
+            )
+          );
+          done();
+        });
     });
   });
 });

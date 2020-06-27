@@ -473,6 +473,19 @@ describe("#idp-redirector/api", () => {
           done();
         });
     });
+
+    it("Should get valid whitelist", done => {
+      storage.read.resolves();
+      request(app)
+        .get("/api")
+        .expect(200)
+        .end((err, res) => {
+          if (err) return done(err);
+
+          expect(res.body).to.deep.equal([]);
+          done();
+        });
+    });
   });
 
   describe("PUT /api/errorPage", () => {
@@ -570,9 +583,56 @@ describe("#idp-redirector/api", () => {
             if (err) return done(err);
             expect(res.body).to.deep.equal({
               error: "internal_error",
-              error_code: "IE002",
-              error_description: "[IE002] Internal Server Error"
+              error_code: "IE003",
+              error_description: "[IE003] Internal Server Error"
             });
+            done();
+          });
+      });
+    });
+
+    describe("bad webtask storage", () => {
+      beforeEach(() => {
+        storage.read.resolves({});
+        getTenantSettingsStub.resolves({ error_page: { url: errorPageUrl } });
+        sinon.resetHistory();
+      });
+
+      it("should fail with special message for 409 errors", done => {
+        const error = new Error("special 409");
+        error.code = 409;
+        storage.write.rejects(error);
+
+        request(app)
+          .put("/api/errorPage")
+          .send([])
+          .expect(409)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            expect(res.body.error).to.equal("update_conflict");
+            expect(res.body.error_description).to.equal(
+              "[AE001] Can not override conflicting update, ensure you have the latest data and retry"
+            );
+            done();
+          });
+      });
+
+      it("should fail with generic error for non 409 errors", done => {
+        const error = new Error("some other error");
+        storage.write.rejects(error);
+
+        request(app)
+          .put("/api/errorPage")
+          .send([])
+          .expect(500)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            expect(res.body.error).to.equal("internal_error");
+            expect(res.body.error_description).to.equal(
+              "[IE002] Internal Server Error"
+            );
             done();
           });
       });

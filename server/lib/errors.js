@@ -16,8 +16,7 @@ module.exports = {
     state_invalid_host: "RE002",
     state_did_not_match_pattern: "RE003",
     state_must_be_url: "RE004",
-    user_exchange_failed: "RE005",
-    forwarding_errors: "RE006",
-    bad_id_token: "RE007"
+    bad_id_token: "RE005",
+    forwarding_errors: "RE006"
   }
 };

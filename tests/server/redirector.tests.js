@@ -371,7 +371,7 @@ describe("#idp-redirector/index", async () => {
               "invalid_request"
             );
             expect(target.searchParams.get("error_description")).to.be.equal(
-              "[RE007] Invalid User Token"
+              "[RE005] Invalid User Token"
             );
 
             done();

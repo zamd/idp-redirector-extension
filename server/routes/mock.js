@@ -22,7 +22,7 @@ module.exports = (app, localhostBaseUrl) => {
           aud: config("AUTH0_CLIENT_ID"),
           iss: localhostBaseUrl,
           iat: Date.now(),
-          exp: Date.now() + 3600,
+          exp: Date.now() + 3600
         },
         config("AUTH0_CLIENT_SECRET")
       );

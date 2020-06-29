@@ -210,9 +210,9 @@ module.exports = storage => {
       });
     } else if (req.user_error) {
       logger.error({
-        type: "redirector_bad_user_exchange",
+        type: "redirector_id_token_validation_error",
         description: "Error Redirect",
-        error_code: errors.redirect.user_exchange_failed,
+        error_code: errors.redirect.bad_id_token,
         req,
         details
       });

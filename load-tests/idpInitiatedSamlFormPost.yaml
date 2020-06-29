@@ -7,13 +7,6 @@ config:
   plugins:
     expect: {}
   environments:
-    dev: # localhost
-      target: "http://localhost:3001"
-      phases:
-        - duration: 60
-          arrivalRate: 1
-          maxVusers: 10
-          name: "Warm up load (10 max users)"
     stag: # cloud
       target: "https://keyc.auth0.com"
       phases:

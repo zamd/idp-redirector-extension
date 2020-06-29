@@ -25,11 +25,6 @@ nconf
 const app = server(key => nconf.get(key), null);
 const port = nconf.get("PORT");
 
-if (process.env.NODE_ENV === "development") {
-  const localhostBaseUrl = `http://localhost:${port}`;
-  require("./server/routes/mock")(app, localhostBaseUrl);
-}
-
 app.listen(port, error => {
   if (error) {
     console.error(`Got error during startup: ${error.message}`);

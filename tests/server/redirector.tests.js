@@ -57,7 +57,7 @@ describe("#idp-redirector/index", async () => {
   });
   app.use("/api", api(storage));
 
-  const issuer = `https://${defaultConfig.AUTH0_DOMAIN}`;
+  const issuer = `https://${defaultConfig.AUTH0_DOMAIN}/`;
   const exampleUserId = "someuserid";
 
   const createToken = (overrideClaims, secret) => {

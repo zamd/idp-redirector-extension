@@ -1,4 +1,3 @@
-// const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const { Router } = require("express");
 const { URL } = require("url");
@@ -81,7 +80,7 @@ module.exports = storage => {
       const idToken = req.body.id_token;
       req.user = await jwt.verify(idToken, config("AUTH0_CLIENT_SECRET"), {
         audience: config("AUTH0_CLIENT_ID"),
-        issuer: `https://${config("AUTH0_DOMAIN")}`
+        issuer: `https://${config("AUTH0_DOMAIN")}/`
       });
     } catch (e) {
       logger.verbose(`Error attempting to decode ID token: ${e.message}`);

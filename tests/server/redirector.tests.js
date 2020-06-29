@@ -255,6 +255,39 @@ describe("#idp-redirector/index", async () => {
           });
       });
 
+      it("should redirect to loginUrl with error & error_description, when id_token is missing", done => {
+        const targetUrl = "https://url1.com/withPath/abc?q=xyz";
+        request(app)
+          .post("/")
+          .send({
+            state: targetUrl
+          })
+          .expect(302)
+          .end((err, res) => {
+            if (err) return done(err);
+
+            const target = new URL(res.headers["location"]);
+
+            expect(target.origin).to.equal("https://url1.com");
+            expect(target.pathname).to.equal("/login");
+            expect(target.searchParams.get("target_link_uri")).to.be.equal(
+              targetUrl
+            );
+            expect(target.searchParams.get("iss")).to.be.equal(
+              `https://${config("AUTH0_DOMAIN")}`
+            );
+
+            expect(target.searchParams.get("error")).to.be.equal(
+              "invalid_request"
+            );
+            expect(target.searchParams.get("error_description")).to.be.equal(
+              "[RE005] Invalid User Token"
+            );
+
+            done();
+          });
+      });
+
       it("should redirect to /error when state url doesn't match any host", done => {
         request(app)
           .post("/")

@@ -76,17 +76,16 @@ module.exports = storage => {
   };
 
   const processIdTokenMiddleware = async (req, res, next) => {
-    if (req.body && req.body.id_token) {
-      try {
-        const idToken = req.body.id_token;
-        req.user = await jwt.verify(idToken, config("AUTH0_CLIENT_SECRET"), {
-          audience: config("AUTH0_CLIENT_ID"),
-          issuer: `https://${config("AUTH0_DOMAIN")}`
-        });
-      } catch (e) {
-        logger.verbose(`Error attempting to decode ID token: ${e.message}`);
-        req.user_error = errors.redirect.bad_id_token;
-      }
+    try {
+      if (!req.body || !req.body.id_token) throw new Error("id_token missing.");
+      const idToken = req.body.id_token;
+      req.user = await jwt.verify(idToken, config("AUTH0_CLIENT_SECRET"), {
+        audience: config("AUTH0_CLIENT_ID"),
+        issuer: `https://${config("AUTH0_DOMAIN")}`
+      });
+    } catch (e) {
+      logger.verbose(`Error attempting to decode ID token: ${e.message}`);
+      req.user_error = errors.redirect.bad_id_token;
     }
 
     next();

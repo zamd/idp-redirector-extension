@@ -6,11 +6,6 @@ module.exports = {
     bad_error_page: "AE004",
     missing_error_page: "AE005"
   },
-  code_exchange: {
-    forbidden: "CE001",
-    missing_id_token: "CE002",
-    internal: "CE003"
-  },
   internal: {
     error_page_not_configured: "IE001",
     could_not_update_storage: "IE002",

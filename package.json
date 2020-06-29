@@ -1,6 +1,6 @@
 {
   "name": "idp-redirector",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "idp-redirector extension",
   "engines": {
     "node": ">8.9"

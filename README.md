@@ -1,4 +1,4 @@
-# TR Idp Redirector Extension
+# IdP Redirector Extension
 
 ## Run locally
 
@@ -13,8 +13,6 @@ npm run serve:dev
 ```
 
 ## Publish
-
-> Needs a better way to build in circleci, use `codeUrl` and publish bundle to cdn etc.
 
 ```bash
 npm run extension:build

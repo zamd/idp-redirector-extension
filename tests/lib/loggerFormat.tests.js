@@ -132,18 +132,6 @@ describe("#loggerFormat", () => {
           expect(info).to.not.have.property("details");
         });
 
-        it("query: code", () => {
-          const query = {
-            key1: "value1",
-            code: "value2"
-          };
-          const expectedQuery = {
-            key1: "value1",
-            code: "******"
-          };
-          const info = formatter.transform({ message: { req: { query } } });
-          expect(info.details.request.query).to.deep.equal(expectedQuery);
-        });
         it("body", () => {
           const body = {
             key1: "value1",
@@ -157,14 +145,14 @@ describe("#loggerFormat", () => {
           const info = formatter.transform({ message: { req: { body } } });
           expect(info).to.not.have.property("details");
         });
-        it("body: code", () => {
+        it("body: id_token", () => {
           const body = {
             key1: "value1",
-            code: "value2"
+            id_token: "jwt"
           };
           const expected = {
             key1: "value1",
-            code: "******"
+            id_token: "<<redacted>>"
           };
           const info = formatter.transform({ message: { req: { body } } });
           expect(info.details.request.body).to.deep.equal(expected);

@@ -27,7 +27,7 @@ module.exports = () => {
 
   hooks.use("/on-uninstall", hookValidator("/.extensions/on-uninstall"));
   hooks.delete("/on-uninstall", async (req, res) => {
-    logger.debug("Uninstall running version 0.0.1 ...");
+    logger.verbose("Uninstall running, Version:", process.env.CLIENT_VERSION);
     try {
       const getClients = Promise.resolve(
         req.auth0.getClients({
@@ -133,7 +133,7 @@ module.exports = () => {
 
   hooks.use("/on-install", hookValidator("/.extensions/on-install"));
   hooks.post("/on-install", async (req, res) => {
-    logger.verbose("Install running...");
+    logger.verbose("Install running, Version:", process.env.CLIENT_VERSION);
     const defaultScopes = [
       {
         value: "update:patterns",

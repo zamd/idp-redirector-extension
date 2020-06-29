@@ -4,7 +4,7 @@ const config = require("./config");
 const prepForDetails = (req, type) => {
   if (req[type]) {
     const data = JSON.parse(JSON.stringify(req[type]));
-    if (data.code) data.code = "******";
+    if (data.id_token) data.id_token = "<<redacted>>";
     return data;
   }
 

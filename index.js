@@ -1,4 +1,3 @@
-const axios = require("axios");
 const path = require("path");
 const nconf = require("nconf");
 const server = require("./server");
@@ -29,17 +28,6 @@ const port = nconf.get("PORT");
 if (process.env.NODE_ENV === "development") {
   const localhostBaseUrl = `http://localhost:${port}`;
   require("./server/routes/mock")(app, localhostBaseUrl);
-
-  axios.interceptors.request.use(
-    config => {
-      const target = new URL(config.url);
-      if (target.pathname === "/oauth/token") {
-        config.url = `${localhostBaseUrl}/auth0/oauth/token`;
-      }
-      return config;
-    },
-    err => Promise.reject(err)
-  );
 }
 
 app.listen(port, error => {

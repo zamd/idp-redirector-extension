@@ -1,10 +1,10 @@
 config: # test appliance cluster
   target: "https://tr-loadtest.wt.lab.testland.auth0.com/idp-redirector/"
-  processor: "./__processors__/index.js"
+  processor: "../__processors__/index.js"
   includeFiles:
-    - ./__processors__/cert/certificate.crt
-    - ./__processors__/cert/private.key
-    - ./.env
+    - ../__processors__/cert/certificate.crt
+    - ../__processors__/cert/private.key
+    - ../.env
   phases:
     - duration: 120
       arrivalRate: 2

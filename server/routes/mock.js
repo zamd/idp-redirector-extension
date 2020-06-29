@@ -1,4 +1,3 @@
-const { URL } = require("url");
 const jwt = require("jsonwebtoken");
 const config = require("../lib/config");
 const logger = require("../lib/logger");
@@ -15,33 +14,33 @@ module.exports = (app, localhostBaseUrl) => {
     const { connection } = req.query;
     const { SAMLResponse, RelayState } = req.body;
     if (connection && SAMLResponse && RelayState) {
-      const url = new URL(localhostBaseUrl);
-      url.searchParams.set("code", Math.random().toString());
-      url.searchParams.set("state", RelayState);
-
-      res.redirect(url.href);
-    }
-    res.status(400).end();
-  });
-
-  app.post("/auth0/oauth/token", (req, res) => {
-    const { grant_type, client_id, client_secret } = req.body;
-    if (grant_type !== "authorization_code") return res.sendStatus(400);
-
-    res.json({
-      id_token: jwt.sign(
+      const idToken = jwt.sign(
         {
           sub: `${Math.random()
             .toString()
             .substr(2, 6)}@example.com`,
-          aud: client_id,
+          aud: config("AUTH0_CLIENT_ID"),
           iss: localhostBaseUrl,
           iat: Date.now(),
-          exp: Date.now() + 3600
+          exp: Date.now() + 3600,
         },
-        client_secret
-      )
-    });
+        config("AUTH0_CLIENT_SECRET")
+      );
+      return res.send(`
+      <html>
+        <head>
+          <title>Submit This Form</title>
+        </head>
+        <body onload=\"javascript:document.forms[0].submit()\">
+          <form method=\"post\" action=\"${localhostBaseUrl}\">
+            <input type=\"hidden\" name=\"id_token\" value=\"${idToken}\"/>
+            <input type=\"hidden\" name=\"state\" value=\"${RelayState}\"/>
+          </form>
+        </body>
+      </html>
+      `);
+    }
+    res.status(400).end();
   });
 
   app.post("/datadog", (req, res) => {

@@ -65,17 +65,6 @@ module.exports = (cfg, storageProvider) => {
     algorithms: ["RS256"]
   });
 
-  app.post("/testdonothing", async (req, res) => {
-    const responseParams = {
-      iss: `https://${config("AUTH0_DOMAIN")}`,
-      target_link_uri: req.body.state
-    };
-
-    res.redirect(
-      "https://nowhere.carlosmostek.com" + querystring.stringify(responseParams)
-    );
-  });
-
   app.use("/api", jwtCheck, api(storage));
   app.use("/meta", meta());
   app.use("/.extensions", hooks());

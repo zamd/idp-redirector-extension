@@ -92,7 +92,7 @@ module.exports = storage => {
     next();
   };
 
-  index.post("/", processIdTokenMiddleware, async (req, res) => {
+  index.post("/", processIdTokenMiddleware, (req, res) => {
     req.body = req.body || {}; // defensive set of query
     const state = req.body.state;
     if (!state) {

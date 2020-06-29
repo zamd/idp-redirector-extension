@@ -1,6 +1,6 @@
 config: # localhost
   target: "http://localhost:3001"
-  processor: "./__processors__/index.js"
+  processor: "../__processors__/index.js"
   phases:
     - duration: 60
       arrivalRate: 10

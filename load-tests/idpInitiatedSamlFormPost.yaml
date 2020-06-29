@@ -11,9 +11,9 @@ config:
       target: "http://localhost:3001"
       phases:
         - duration: 60
-          arrivalRate: 10
-          maxVusers: 15
-          name: "Warm up load (15 max users)"
+          arrivalRate: 1
+          maxVusers: 10
+          name: "Warm up load (10 max users)"
     stag: # cloud
       target: "https://keyc.auth0.com"
       phases:
@@ -145,12 +145,12 @@ scenarios:
           followRedirect: false
           expect:
             - statusCode: 302
-#            - equals:
-#                - "{{iss}}"
-#                - "{{issuer}}"
-#            - equals:
-#                - "{{targetUri}}"
-#                - "{{a0Client.relayState}}"
-#            - equals:
-#                - "{{appLoginUrl}}"
-#                - "{{$getLoginUrl()}}"
+            - equals:
+                - "{{iss}}"
+                - "{{issuer}}"
+            - equals:
+                - "{{targetUri}}"
+                - "{{a0Client.relayState}}"
+            - equals:
+                - "{{appLoginUrl}}"
+                - "{{$getLoginUrl()}}"

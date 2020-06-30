@@ -93,11 +93,6 @@ describe("#idp-redirector/index", async () => {
   const errorPageUrl = "https://error.page";
 
   before(done => {
-    nock.cleanAll();
-    nock(fakeDataDogHost)
-      .post(fakeDataDogPath, () => true)
-      .reply(200, {});
-
     getTenantSettingsStub.resolves({ error_page: { url: errorPageUrl } });
     request(app)
       .put("/api/")
@@ -131,6 +126,9 @@ describe("#idp-redirector/index", async () => {
   beforeEach(() => {
     sinon.resetHistory();
     global = {};
+    nock(fakeDataDogHost)
+      .post(fakeDataDogPath, () => true)
+      .reply(200, {});
   });
 
   describe("GET /", () => {
@@ -465,12 +463,6 @@ describe("#idp-redirector/index", async () => {
   });
 
   describe("GET / with errors", () => {
-    beforeEach(() => {
-      nock("https://http-intake.logs.datadoghq.com")
-        .post("/v1/input", () => true)
-        .reply(200, {});
-    });
-
     it("should NOT load error_page from tenant settings", done => {
       request(app)
         .post("/")

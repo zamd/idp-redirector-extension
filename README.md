@@ -21,6 +21,14 @@ git commit -m 'build x'
 git push origin master
 ```
 
-## Create Extension
+## Deploying to Auth0
 
-Use `Create Extension` option and enter repo url
+Navigate to the Extensions section of the Auth0 Management Dashboard
+
+Click “Create Extension” as shown in the below screenshot
+
+![](images/create-extension.png)
+
+Enter the URL of the github repo where the IdP Redirector Extension is located and click Continue to install. 
+
+![](images/new-extension.png)

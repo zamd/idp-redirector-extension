@@ -10,11 +10,14 @@ const express = require("express");
 const proxyquire = require("proxyquire").noCallThru();
 const sinon = require("sinon");
 
-let Auth0ClientStub = {};
+const getTenantSettingsStub = sinon.stub();
+
 const Auth0ExtentionToolsStub = {
   middlewares: {
     managementApiClient: () => (req, res, next) => {
-      req.auth0 = Auth0ClientStub;
+      req.auth0 = {
+        getTenantSettings: getTenantSettingsStub
+      };
       next();
     }
   }
@@ -38,7 +41,9 @@ describe("#idp-redirector/index", async () => {
   config.setProvider(key => defaultConfig[key], null);
 
   const storage = {
-    read: () => Promise.resolve(storage.data || {}),
+    read: () => {
+      return Promise.resolve(storage.data || {});
+    },
     write: data => {
       storage.data = data;
       return Promise.resolve();
@@ -48,16 +53,17 @@ describe("#idp-redirector/index", async () => {
   const app = express();
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: false }));
-  app.use("/", index(storage));
   app.use((req, res, next) => {
     req.user = {
       scope: "read:patterns update:patterns"
     };
     next();
   });
-  app.use("/api", api(storage));
 
-  const issuer = `https://${defaultConfig.AUTH0_DOMAIN}/`;
+  app.use("/api", api(storage));
+  app.use("/", index(storage));
+
+  const issuer = `https://${defaultConfig.AUTH0_DOMAIN}`;
   const exampleUserId = "someuserid";
 
   const createToken = (overrideClaims, secret) => {
@@ -86,20 +92,15 @@ describe("#idp-redirector/index", async () => {
 
   const errorPageUrl = "https://error.page";
 
-  const getTenantSettingsStub = sinon
-    .stub()
-    .resolves({ error_page: { url: errorPageUrl } });
-  Auth0ClientStub = { getTenantSettings: getTenantSettingsStub };
-
   before(done => {
     nock.cleanAll();
-
     nock(fakeDataDogHost)
       .post(fakeDataDogPath, () => true)
       .reply(200, {});
 
+    getTenantSettingsStub.resolves({ error_page: { url: errorPageUrl } });
     request(app)
-      .put("/api")
+      .put("/api/")
       .send([
         {
           clientName: "client name",
@@ -119,8 +120,10 @@ describe("#idp-redirector/index", async () => {
           ]
         }
       ])
-      .end(err => {
+      .end((err, res) => {
         if (err) return done(err);
+        if (res.status !== 200)
+          return done(new Error("Put failed with statuCode:" + res.status));
         done();
       });
   });

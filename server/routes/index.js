@@ -185,12 +185,13 @@ module.exports = storage => {
 
     const redirectUrl = new URL(loginUrl);
     const responseParams = {
-      ...querystring.parse(redirectUrl.search),
       iss: `https://${config("AUTH0_DOMAIN")}`,
       target_link_uri: state,
       ...errorParams
     };
-    redirectUrl.search = querystring.stringify(responseParams);
+    for (const [key, value] of Object.entries(responseParams))
+      redirectUrl.searchParams.append(key, value);
+
     const details = {
       matched,
       response: {

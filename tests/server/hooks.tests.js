@@ -26,13 +26,11 @@ const Auth0ExtensionToolsStub = {
 const hooks = proxyquire("../../server/routes/hooks", {
   "auth0-extension-express-tools": Auth0ExtensionToolsStub
 });
+const { DENY_ACCESS_RULE_NAME, EXTENSION_CLIENT_NAME } = hooks.extensionConfig;
 
 chai.use(sinonChai);
 
 describe("#idp-redirector/hooks", () => {
-  const DENY_USER_ACCESS_RULE_NAME =
-    "DO-NOT-MODIFY Deny User Based Access for IdP Redirector API";
-
   const defaultConfig = require("../../server/config.json");
   const fakeDataDogHost = "https://datadog.internal";
   const fakeDataDogPath = "/v1/logs";
@@ -131,11 +129,13 @@ describe("#idp-redirector/hooks", () => {
 
           expect(createRuleStub).to.have.been.calledWithExactly({
             enabled: true,
-            script: ruleScript.replace(
-              "##IDP_REDIRECTOR_AUDIENCE##",
-              config("EXTENSION_AUDIENCE")
-            ),
-            name: DENY_USER_ACCESS_RULE_NAME
+            script: ruleScript
+              .replace(
+                "##IDP_REDIRECTOR_AUDIENCE##",
+                config("EXTENSION_AUDIENCE")
+              )
+              .replace("##EXTENSION_CLIENT_NAME##", EXTENSION_CLIENT_NAME),
+            name: DENY_ACCESS_RULE_NAME
           });
 
           expect(createClientGrantStub).to.have.been.calledWithExactly({
@@ -151,7 +151,7 @@ describe("#idp-redirector/hooks", () => {
     it("Should cleanup on install failure", done => {
       createRuleStub.rejects(new Error("Fail createRule test"));
       getRulesStub.resolves([
-        { id: "ext_rule_123", name: DENY_USER_ACCESS_RULE_NAME }
+        { id: "ext_rule_123", name: DENY_ACCESS_RULE_NAME }
       ]);
       getClientGrantsStub.resolves([{ client_id: "client_123" }]);
       deleteRuleStub.resolves({});
@@ -184,7 +184,7 @@ describe("#idp-redirector/hooks", () => {
       getRulesStub.resolves([
         { id: "rule_1", name: "Rule 1" },
         { id: "rule_2", name: "Rule 2" },
-        { id: "ext_rule_123", name: DENY_USER_ACCESS_RULE_NAME },
+        { id: "ext_rule_123", name: DENY_ACCESS_RULE_NAME },
         { id: "rule_3", name: "Rule 3" }
       ]);
       deleteRuleStub.resolves({});
@@ -274,7 +274,7 @@ describe("#idp-redirector/hooks", () => {
         const expectedClientId = "CI/CD";
         getRulesStub.resolves([
           { id: "rule_1", name: "rule 1" },
-          { id: expectedRuleId, name: DENY_USER_ACCESS_RULE_NAME }
+          { id: expectedRuleId, name: DENY_ACCESS_RULE_NAME }
         ]);
         getClientGrantsStub.resolves([{ client_id: expectedClientId }]);
 

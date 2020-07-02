@@ -5,10 +5,13 @@ const config = require("../lib/config");
 const logger = require("../lib/logger");
 const ruleScript = require("../lib/rule");
 
-module.exports = () => {
-  const DENY_USER_ACCESS_RULE_NAME =
-    "DO-NOT-MODIFY Deny User Based Access for IdP Redirector API";
+const extensionConfig = {
+  DENY_ACCESS_RULE_NAME:
+    "DO-NOT-MODIFY Deny User Access for Redirector API and Non SAML Login Access for Extension Client",
+  EXTENSION_CLIENT_NAME: require("../../webtask.json").name
+};
 
+const $module = (module.exports = () => {
   const hookValidator = middlewares.validateHookToken(
     config("AUTH0_DOMAIN"),
     config("WT_URL"),
@@ -38,7 +41,7 @@ module.exports = () => {
     ]);
 
     const denyUserAccessRule = rules.find(
-      rule => rule.name === DENY_USER_ACCESS_RULE_NAME
+      rule => rule.name === extensionConfig.DENY_ACCESS_RULE_NAME
     );
     const [clientGrant] = clientGrants;
     const deleteDenyUserAccessRule = denyUserAccessRule
@@ -133,11 +136,13 @@ module.exports = () => {
 
     const createRule = req.auth0.createRule({
       enabled: true,
-      script: ruleScript.replace(
-        "##IDP_REDIRECTOR_AUDIENCE##",
-        config("EXTENSION_AUDIENCE")
-      ),
-      name: DENY_USER_ACCESS_RULE_NAME
+      script: ruleScript
+        .replace("##IDP_REDIRECTOR_AUDIENCE##", config("EXTENSION_AUDIENCE"))
+        .replace(
+          "##EXTENSION_CLIENT_NAME##",
+          extensionConfig.EXTENSION_CLIENT_NAME
+        ),
+      name: extensionConfig.DENY_ACCESS_RULE_NAME
     });
 
     try {
@@ -182,4 +187,6 @@ module.exports = () => {
   });
 
   return hooks;
-};
+});
+
+$module.extensionConfig = extensionConfig;

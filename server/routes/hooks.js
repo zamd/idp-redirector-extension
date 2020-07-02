@@ -4,11 +4,12 @@ const { middlewares } = require("auth0-extension-express-tools");
 const config = require("../lib/config");
 const logger = require("../lib/logger");
 const ruleScript = require("../lib/rule");
+const metadata = require("../../webtask.json");
 
 const extensionConfig = {
   DENY_ACCESS_RULE_NAME:
     "DO-NOT-MODIFY Deny User Access for Redirector API and Non SAML Login Access for Extension Client",
-  EXTENSION_CLIENT_NAME: require("../../webtask.json").name
+  EXTENSION_CLIENT_NAME: metadata.name
 };
 
 const $module = (module.exports = () => {
@@ -80,7 +81,7 @@ const $module = (module.exports = () => {
 
   hooks.use("/on-uninstall", hookValidator("/.extensions/on-uninstall"));
   hooks.delete("/on-uninstall", async (req, res) => {
-    logger.debug("Uninstall running version 0.0.1 ...");
+    logger.debug(`Uninstall running version ${metadata.version} ...`);
     try {
       await cleanUp(req);
     } catch (error) {
@@ -97,7 +98,7 @@ const $module = (module.exports = () => {
 
   hooks.use("/on-install", hookValidator("/.extensions/on-install"));
   hooks.post("/on-install", async (req, res) => {
-    logger.verbose("Install running...");
+    logger.verbose(`Install running version ${metadata.version} ...`);
     const defaultScopes = [
       {
         value: "update:patterns",

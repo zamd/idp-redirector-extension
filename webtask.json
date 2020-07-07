@@ -10,7 +10,7 @@
   "logoUrl": "https://res-1.cloudinary.com/crunchbase-production/image/upload/c_lpad,h_120,w_120,f_auto,b_white,q_auto:eco/v1397191966/68aa3a98f81f5e09a3afb00a73461434.png",
   "initialUrlPath": "/",
   "docsUrl": "https://auth0.com/docs",
-  "codeUrl": "https://raw.githubusercontent.com/auth0-extensions/idp-redirector-extension/master/build/bundle.js",
+  "codeUrl": "https://cbd72e5af1f2.ngrok.io/build/bundle.js",
   "repository": "https://github.com/auth0-extensions/idp-redirector-extension",
   "keywords": [
     "auth0",

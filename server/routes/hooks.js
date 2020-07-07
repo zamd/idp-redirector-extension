@@ -28,7 +28,7 @@ const $module = (module.exports = () => {
     })
   );
 
-  async function cleanUp(req) {
+  async function cleanUp(req, unInstalling = true) {
     const getClientGrants = req.auth0.getClientGrants({
       audience: config("EXTENSION_AUDIENCE")
     });
@@ -49,9 +49,11 @@ const $module = (module.exports = () => {
       ? req.auth0.deleteRule({ id: denyUserAccessRule.id })
       : Promise.resolve();
 
-    const deleteExtensionClient = req.auth0.deleteClient({
-      client_id: config("AUTH0_CLIENT_ID")
-    });
+    const deleteExtensionClient = unInstalling
+      ? req.auth0.deleteClient({
+          client_id: config("AUTH0_CLIENT_ID")
+        })
+      : Promise.resolve();
 
     const deleteDeploymentClient =
       clientGrant && clientGrant.client_id
@@ -69,7 +71,8 @@ const $module = (module.exports = () => {
       deleteDenyUserAccessRule
     ]);
 
-    logger.debug(`Deleted Extension Client: ${config("AUTH0_CLIENT_ID")}`);
+    if (unInstalling)
+      logger.debug(`Deleted Extension Client: ${config("AUTH0_CLIENT_ID")}`);
     if (clientGrant) {
       logger.debug(`Deleted Deployment Client: ${clientGrant.client_id}`);
     }
@@ -79,26 +82,7 @@ const $module = (module.exports = () => {
     }
   }
 
-  hooks.use("/on-uninstall", hookValidator("/.extensions/on-uninstall"));
-  hooks.delete("/on-uninstall", async (req, res) => {
-    logger.debug(`Uninstall running version ${metadata.version} ...`);
-    try {
-      await cleanUp(req);
-    } catch (error) {
-      logger.debug(
-        `Error deleting extension resources: ${
-          error.message ? error.message : ""
-        }`
-      );
-      logger.verbose(error);
-    } finally {
-      res.sendStatus(204);
-    }
-  });
-
-  hooks.use("/on-install", hookValidator("/.extensions/on-install"));
-  hooks.post("/on-install", async (req, res) => {
-    logger.verbose(`Install running version ${metadata.version} ...`);
+  async function setup(req) {
     const defaultScopes = [
       {
         value: "update:patterns",
@@ -146,29 +130,52 @@ const $module = (module.exports = () => {
       name: extensionConfig.DENY_ACCESS_RULE_NAME
     });
 
+    const [
+      deploymentClient,
+      redirectorAPI,
+      ,
+      denyUserAccessRule
+    ] = await Promise.all([
+      createDeploymentClient,
+      createAPI,
+      updateExtensionClient,
+      createRule
+    ]);
+
+    const deploymentClientGrant = await req.auth0.createClientGrant({
+      client_id: deploymentClient.client_id,
+      audience: config("EXTENSION_AUDIENCE"),
+      scope: defaultScopes.map(scope => scope.value)
+    });
+
+    logger.verbose(`Created Client: ${deploymentClient.client_id}`);
+    logger.verbose(`Created API: ${redirectorAPI.identifier}`);
+    logger.verbose(`Created Grant: ${deploymentClientGrant.id}`);
+    logger.verbose(`Created Rule: ${denyUserAccessRule.name}`);
+  }
+
+  hooks.use("/on-uninstall", hookValidator("/.extensions/on-uninstall"));
+  hooks.delete("/on-uninstall", async (req, res) => {
+    logger.debug(`Uninstall running version ${metadata.version} ...`);
     try {
-      const [
-        deploymentClient,
-        redirectorAPI,
-        ,
-        denyUserAccessRule
-      ] = await Promise.all([
-        createDeploymentClient,
-        createAPI,
-        updateExtensionClient,
-        createRule
-      ]);
+      await cleanUp(req);
+    } catch (error) {
+      logger.debug(
+        `Error deleting extension resources: ${
+          error.message ? error.message : ""
+        }`
+      );
+      logger.verbose(error);
+    } finally {
+      res.sendStatus(204);
+    }
+  });
 
-      const deploymentClientGrant = await req.auth0.createClientGrant({
-        client_id: deploymentClient.client_id,
-        audience: config("EXTENSION_AUDIENCE"),
-        scope: defaultScopes.map(scope => scope.value)
-      });
-
-      logger.verbose(`Created Client: ${deploymentClient.client_id}`);
-      logger.verbose(`Created API: ${redirectorAPI.identifier}`);
-      logger.verbose(`Created Grant: ${deploymentClientGrant.id}`);
-      logger.verbose(`Created Rule: ${denyUserAccessRule.name}`);
+  hooks.use("/on-install", hookValidator("/.extensions/on-install"));
+  hooks.post("/on-install", async (req, res) => {
+    logger.verbose(`Install running version ${metadata.version} ...`);
+    try {
+      await setup(req);
       return res.sendStatus(204);
     } catch (error) {
       logger.debug(
@@ -179,11 +186,26 @@ const $module = (module.exports = () => {
       try {
         cleanUp(req);
       } catch (error) {}
-      // Even if deleting fails, we need to be able to uninstall the extension.
       return res.status(500).json({
         error: "failed_install",
         error_description: "Could not create required extension resources"
       });
+    }
+  });
+
+  hooks.use("/on-update", hookValidator("/.extensions/on-update"));
+  hooks.put("/on-update", async (req, res) => {
+    logger.verbose(`Update running version ${metadata.version} ...`);
+    try {
+      await cleanUp(req, false);
+      await setup(req);
+    } catch (error) {
+      logger.debug(
+        `Error updating extension: ${error.message ? error.message : ""}`
+      );
+      logger.verbose(error);
+    } finally {
+      res.sendStatus(204);
     }
   });
 

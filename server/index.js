@@ -50,7 +50,7 @@ module.exports = (cfg, storageProvider) => {
       })
     );
   }
-  app.use(bodyParser.json({ limit: "500kb" }));
+  app.use(bodyParser.json({ limit: "1mb" }));
   app.use(bodyParser.urlencoded({ extended: false }));
 
   const jwtCheck = jwt({

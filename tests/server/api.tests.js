@@ -70,8 +70,8 @@ describe("#idp-redirector/api", () => {
         getTenantSettingsStub.resolves({ error_page: { url: errorPageUrl } });
       });
 
-      it("Should write valid whitelist", done => {
-        const whiteListData = [
+      it("Should write valid allowlist", done => {
+        const allowlistData = [
           {
             clientName: "client name",
             loginUrl: "https://url1.com/login",
@@ -138,12 +138,12 @@ describe("#idp-redirector/api", () => {
 
         request(app)
           .put("/api")
-          .send(whiteListData)
+          .send(allowlistData)
           .expect(200)
           .end((err, res) => {
             if (err) return done(err);
 
-            expect(res.body).to.deep.equal(whiteListData);
+            expect(res.body).to.deep.equal(allowlistData);
             expect(storage.write).to.have.been.calledWithExactly({
               errorPage: errorPageUrl,
               hostToPattern: expectedHostToPattern
@@ -152,10 +152,10 @@ describe("#idp-redirector/api", () => {
           });
       });
 
-      const whiteListFailureTest = (whiteListData, errorMessage) => done => {
+      const allowlistFailureTest = (allowlistData, errorMessage) => done => {
         request(app)
           .put("/api")
-          .send(whiteListData)
+          .send(allowlistData)
           .expect(400)
           .end((err, res) => {
             if (err) return done(err);
@@ -168,7 +168,7 @@ describe("#idp-redirector/api", () => {
 
       it(
         "fails with wildcard in hostname",
-        whiteListFailureTest(
+        allowlistFailureTest(
           [
             {
               clientName: "client name",
@@ -181,7 +181,7 @@ describe("#idp-redirector/api", () => {
 
       it(
         "fails with wildcard somewhere in the middle of the pattern",
-        whiteListFailureTest(
+        allowlistFailureTest(
           [
             {
               clientName: "client name",
@@ -195,7 +195,7 @@ describe("#idp-redirector/api", () => {
 
       it(
         "fails with invalid URL for pattern",
-        whiteListFailureTest(
+        allowlistFailureTest(
           [
             {
               clientName: "client name",
@@ -208,7 +208,7 @@ describe("#idp-redirector/api", () => {
 
       it(
         "fails with short client name",
-        whiteListFailureTest(
+        allowlistFailureTest(
           [
             {
               clientName: "",
@@ -222,7 +222,7 @@ describe("#idp-redirector/api", () => {
 
       it(
         "fails with invalid clientName",
-        whiteListFailureTest(
+        allowlistFailureTest(
           [
             {
               clientName: { key: "name" },
@@ -235,7 +235,7 @@ describe("#idp-redirector/api", () => {
 
       it(
         "fails with invalid loginUrl",
-        whiteListFailureTest(
+        allowlistFailureTest(
           [
             {
               clientName: "the client",
@@ -249,7 +249,7 @@ describe("#idp-redirector/api", () => {
 
       it(
         "fails with invalid key",
-        whiteListFailureTest(
+        allowlistFailureTest(
           [
             {
               clientName: "the client",
@@ -263,7 +263,7 @@ describe("#idp-redirector/api", () => {
 
       it(
         "fails with empty patterns",
-        whiteListFailureTest(
+        allowlistFailureTest(
           [
             {
               clientName: "the client",
@@ -345,7 +345,7 @@ describe("#idp-redirector/api", () => {
 
       it("missing error page url", done => {
         getTenantSettingsStub.resolves({ error_page: {} });
-        const whiteListData = [
+        const allowlistData = [
           {
             clientName: "client name",
             patterns: ["https://url1.com"]
@@ -354,7 +354,7 @@ describe("#idp-redirector/api", () => {
 
         request(app)
           .put("/api")
-          .send(whiteListData)
+          .send(allowlistData)
           .expect(400)
           .end((err, res) => {
             if (err) return done(err);
@@ -370,7 +370,7 @@ describe("#idp-redirector/api", () => {
 
       it("missing error page", done => {
         getTenantSettingsStub.resolves({});
-        const whiteListData = [
+        const allowlistData = [
           {
             clientName: "client name",
             patterns: ["https://url1.com"]
@@ -379,7 +379,7 @@ describe("#idp-redirector/api", () => {
 
         request(app)
           .put("/api")
-          .send(whiteListData)
+          .send(allowlistData)
           .expect(400)
           .end((err, res) => {
             if (err) return done(err);
@@ -396,8 +396,8 @@ describe("#idp-redirector/api", () => {
   });
 
   describe("GET /api", () => {
-    it("Should get valid whitelist", done => {
-      const expectedWhiteList = [
+    it("Should get valid allowlist", done => {
+      const expectedAllowlist = [
         {
           clientName: "client name",
           loginUrl: "https://url1.com/login",
@@ -469,12 +469,12 @@ describe("#idp-redirector/api", () => {
         .end((err, res) => {
           if (err) return done(err);
 
-          expect(res.body).to.deep.equal(expectedWhiteList);
+          expect(res.body).to.deep.equal(expectedAllowlist);
           done();
         });
     });
 
-    it("Should get valid whitelist", done => {
+    it("Should get valid allowlist", done => {
       storage.read.resolves();
       request(app)
         .get("/api")
@@ -499,7 +499,7 @@ describe("#idp-redirector/api", () => {
 
       it("good error page", done => {
         getTenantSettingsStub.resolves({ error_page: { url: errorPageUrl } });
-        const whiteListData = [
+        const allowlistData = [
           {
             clientName: "client name",
             patterns: ["https://url1.com"]
@@ -508,7 +508,7 @@ describe("#idp-redirector/api", () => {
 
         request(app)
           .put("/api/errorPage")
-          .send(whiteListData)
+          .send(allowlistData)
           .expect(204)
           .end(err => {
             if (err) return done(err);
@@ -531,7 +531,7 @@ describe("#idp-redirector/api", () => {
 
       it("missing error page", done => {
         getTenantSettingsStub.resolves({ error_page: {} });
-        const whiteListData = [
+        const allowlistData = [
           {
             clientName: "client name",
             patterns: ["https://url1.com"]
@@ -540,7 +540,7 @@ describe("#idp-redirector/api", () => {
 
         request(app)
           .put("/api/errorPage")
-          .send(whiteListData)
+          .send(allowlistData)
           .expect(400)
           .end((err, res) => {
             if (err) return done(err);

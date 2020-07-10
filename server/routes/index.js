@@ -157,7 +157,7 @@ module.exports = storage => {
         return redirectToErrorPage(req, res, {
           code: errors.redirect.state_did_not_match_pattern,
           error: "invalid_request",
-          error_description: `state must match a valid whitelist pattern: ${state}`
+          error_description: `state must match a valid allowlist pattern: ${state}`
         });
       }
 

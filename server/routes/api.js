@@ -19,7 +19,7 @@ module.exports = storage => {
     if (hostToPattern) data.hostToPattern = hostToPattern;
     try {
       await storage.write(data);
-      logger.debug("Whitelist and errorPage updated");
+      logger.debug("Allowlist and errorPage updated");
       delete global.storageData;
     } catch (e) {
       throw e;
@@ -162,17 +162,17 @@ module.exports = storage => {
     ensureAuth0ApiClient(),
     async (req, res) => {
       delete req.query; // ignore query for logging
-      const whiteList = req.body;
+      const allowlist = req.body;
       const hostToPattern = {};
 
       try {
         const { error: joiError } = await Joi.validate(
-          whiteList,
+          allowlist,
           patternSchema
         );
         if (joiError) {
           logger.verbose(
-            `Failed attempt to update whitelist: ${joiError.message}`
+            `Failed attempt to update allowlist: ${joiError.message}`
           );
           return respondWithError(res, 400, {
             error: "invalid_request",
@@ -181,7 +181,7 @@ module.exports = storage => {
           });
         }
 
-        whiteList.forEach(clientPattern => {
+        allowlist.forEach(clientPattern => {
           if (clientPattern.loginUrl) {
             try {
               new URL(clientPattern.loginUrl); // validating the URL format since Joi doesn't really support this
@@ -240,10 +240,10 @@ module.exports = storage => {
           });
         });
       } catch (e) {
-        logger.verbose(`Failed attempt to update whitelist: ${e.message}`);
+        logger.verbose(`Failed attempt to update allowlist: ${e.message}`);
         return respondWithError(res, 400, {
           error: "invalid_request",
-          error_code: errors.api.invalid_whitelist,
+          error_code: errors.api.invalid_allowlist,
           error_description: e.message
         });
       }
@@ -259,10 +259,10 @@ module.exports = storage => {
         logger.info({
           req,
           type: "redirector_successful_PUT",
-          description: "Successful Whitelist Update"
+          description: "Successful Allowlist Update"
         });
 
-        return res.status(200).json(whiteList);
+        return res.status(200).json(allowlist);
       } catch (e) {
         if (e.code === 409) {
           return respondWithError(res, 409, {

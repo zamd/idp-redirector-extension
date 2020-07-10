@@ -88,11 +88,11 @@ describe("#idp-redirector/hooks", () => {
       const expectedScopes = [
         {
           value: "update:patterns",
-          description: "Update the whitelist patterns"
+          description: "Update the allowlist patterns"
         },
         {
           value: "read:patterns",
-          description: "Read the whitelist patterns"
+          description: "Read the allowlist patterns"
         }
       ];
       const expectedAudience = defaultConfig["EXTENSION_AUDIENCE"];

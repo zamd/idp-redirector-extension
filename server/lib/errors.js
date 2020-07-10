@@ -2,7 +2,7 @@ module.exports = {
   api: {
     update_conflict: "AE001",
     invalid_schema: "AE002",
-    invalid_whitelist: "AE003",
+    invalid_allowlist: "AE003",
     bad_error_page: "AE004",
     missing_error_page: "AE005"
   },

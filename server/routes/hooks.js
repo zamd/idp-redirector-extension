@@ -102,11 +102,11 @@ const $module = (module.exports = () => {
     const defaultScopes = [
       {
         value: "update:patterns",
-        description: "Update the whitelist patterns"
+        description: "Update the allowlist patterns"
       },
       {
         value: "read:patterns",
-        description: "Read the whitelist patterns"
+        description: "Read the allowlist patterns"
       }
     ];
 

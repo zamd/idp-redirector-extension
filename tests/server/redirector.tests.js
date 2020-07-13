@@ -332,7 +332,7 @@ describe("#idp-redirector/index", async () => {
               "invalid_request"
             );
             expect(target.searchParams.get("error_description")).to.be.equal(
-              "[RE003] state must match a valid whitelist pattern: https://url1.com/wrongPath"
+              "[RE003] state must match a valid allowlist pattern: https://url1.com/wrongPath"
             );
 
             done();

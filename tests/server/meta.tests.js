@@ -41,7 +41,7 @@ describe("#idp-redirector/meta", () => {
     it("returns version from github release tag", done => {
       const expectedVersion = "3.0.0";
 
-      nock("https://api.gethub.com")
+      nock("https://api.github.com")
         .get("/repos/auth0-extension/idp-redirector-extension/releases/latest")
         .reply(200, {
           id: 123456,

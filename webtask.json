@@ -11,11 +11,9 @@
   "initialUrlPath": "/",
   "docsUrl": "https://auth0.com/docs",
   "codeUrl": "https://cbd72e5af1f2.ngrok.io/build/bundle.js",
-  "repository": "https://github.com/auth0-extensions/idp-redirector-extension",
-  "keywords": [
-    "auth0",
-    "extension"
-  ],
+  "repository": "https://github.com/zamd/idp-redirector-extension",
+  "xxMetadata": "https://23848a25a991.ngrok.io/xxMetadata.json",
+  "keywords": ["auth0", "extension"],
   "auth0": {
     "createClient": true,
     "onUninstallPath": "/.extensions/on-uninstall",

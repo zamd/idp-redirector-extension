@@ -5,8 +5,8 @@ const axios = require("axios").default;
 module.exports = () => {
   const api = new express.Router();
   api.get("/", async (req, res) => {
-    const dynamicMetadata = await axios.get(metadata.docsUrl);
-
+    const { data: dynamicMetadata } = await axios.get(metadata.docsUrl);
+    console.log(dynamicMetadata);
     res.status(200).send(dynamicMetadata);
   });
 

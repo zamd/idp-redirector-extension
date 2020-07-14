@@ -67,6 +67,7 @@ module.exports = (cfg, storageProvider) => {
 
   app.use("/api", jwtCheck, api(storage));
   app.use("/meta", meta());
+  app.use("/test", (req, res) => res.json({ ok: true }));
   app.use("/.extensions", hooks());
   app.use(index(storage));
 

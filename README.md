@@ -29,6 +29,14 @@ Click “Create Extension” as shown in the below screenshot
 
 ![](images/create-extension.png)
 
-Enter the URL of the github repo where the IdP Redirector Extension is located and click Continue to install. 
+Enter the URL of the github repo where the IdP Redirector Extension is located and click Continue to install.
 
 ![](images/new-extension.png)
+
+## Publishing Update
+
+Create a new release in [github](https://github.com/auth0-extensions/idp-redirector-extension/releases/) and set a `tag version` to new semantic version `major.minor.patch` of the extension.
+
+This will enable "Update" option in all tenants where the extension is installed.
+
+![](images/update-extension.png)

@@ -9,10 +9,9 @@
   "category": "end_user",
   "logoUrl": "https://res-1.cloudinary.com/crunchbase-production/image/upload/c_lpad,h_120,w_120,f_auto,b_white,q_auto:eco/v1397191966/68aa3a98f81f5e09a3afb00a73461434.png",
   "initialUrlPath": "/",
-  "docsUrl": "https://auth0.com/docs",
+  "docsUrl": "https://23848a25a991.ngrok.io/xxMetadata.json",
   "codeUrl": "https://cbd72e5af1f2.ngrok.io/build/bundle.js",
   "repository": "https://github.com/zamd/idp-redirector-extension",
-  "xxMetadata": "https://23848a25a991.ngrok.io/xxMetadata.json",
   "keywords": ["auth0", "extension"],
   "auth0": {
     "createClient": true,

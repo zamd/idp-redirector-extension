@@ -12,6 +12,7 @@ const hooks = require("./routes/hooks");
 const meta = require("./routes/meta");
 const index = require("./routes/index");
 const config = require("./lib/config");
+const installConfig = require("./lib/installConfig.js");
 const logger = require("./lib/logger");
 const { errorHandler } = require("./lib/middlewares");
 
@@ -60,7 +61,7 @@ module.exports = (cfg, storageProvider) => {
       jwksRequestsPerMinute: 5,
       jwksUri: "https://" + config("AUTH0_DOMAIN") + "/.well-known/jwks.json"
     }),
-    audience: config("EXTENSION_AUDIENCE"),
+    audience: installConfig.EXTENSION_AUDIENCE,
     issuer: "https://" + config("AUTH0_DOMAIN") + "/",
     algorithms: ["RS256"]
   });

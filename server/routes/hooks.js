@@ -6,13 +6,9 @@ const logger = require("../lib/logger");
 const ruleScript = require("../lib/rule");
 const metadata = require("../../webtask.json");
 
-const extensionConfig = {
-  DENY_ACCESS_RULE_NAME:
-    "DO-NOT-MODIFY Deny User Access for Redirector API and Non SAML Login Access for Extension Client",
-  EXTENSION_CLIENT_NAME: metadata.name
-};
+const installConfig = require("../lib/installConfig");
 
-const $module = (module.exports = () => {
+module.exports = () => {
   const hookValidator = middlewares.validateHookToken(
     config("AUTH0_DOMAIN"),
     config("WT_URL"),
@@ -30,7 +26,7 @@ const $module = (module.exports = () => {
 
   async function cleanUp(req) {
     const getClientGrants = req.auth0.getClientGrants({
-      audience: config("EXTENSION_AUDIENCE")
+      audience: installConfig.EXTENSION_AUDIENCE
     });
     const getRules = req.auth0.getRules({
       fields: "name,id"
@@ -42,7 +38,7 @@ const $module = (module.exports = () => {
     ]);
 
     const denyUserAccessRule = rules.find(
-      rule => rule.name === extensionConfig.DENY_ACCESS_RULE_NAME
+      rule => rule.name === installConfig.DENY_ACCESS_RULE_NAME
     );
     const [clientGrant] = clientGrants;
     const deleteDenyUserAccessRule = denyUserAccessRule
@@ -59,7 +55,7 @@ const $module = (module.exports = () => {
         : Promise.resolve();
 
     const deleteAudience = req.auth0.deleteResourceServer({
-      id: encodeURIComponent(config("EXTENSION_AUDIENCE")) // bug in auth0.js doesn't do encoding and fails with 404
+      id: encodeURIComponent(installConfig.EXTENSION_AUDIENCE) // bug in auth0.js doesn't do encoding and fails with 404
     });
 
     await Promise.all([
@@ -73,7 +69,7 @@ const $module = (module.exports = () => {
     if (clientGrant) {
       logger.debug(`Deleted Deployment Client: ${clientGrant.client_id}`);
     }
-    logger.debug(`Deleted API: ${config("EXTENSION_AUDIENCE")}`);
+    logger.debug(`Deleted API: ${installConfig.EXTENSION_AUDIENCE}`);
     if (denyUserAccessRule) {
       logger.debug(`Deleted Rule: ${denyUserAccessRule.name}`);
     }
@@ -111,13 +107,13 @@ const $module = (module.exports = () => {
     ];
 
     const createAPI = req.auth0.createResourceServer({
-      identifier: config("EXTENSION_AUDIENCE"),
+      identifier: installConfig.EXTENSION_AUDIENCE,
       name: "idp-redirector-api",
       scopes: defaultScopes
     });
 
     const createDeploymentClient = req.auth0.createClient({
-      name: config("DEPLOYMENT_CLIENT_NAME"),
+      name: installConfig.DEPLOYMENT_CLIENT_NAME,
       app_type: "non_interactive",
       grant_types: ["client_credentials"]
     });
@@ -138,12 +134,15 @@ const $module = (module.exports = () => {
     const createRule = req.auth0.createRule({
       enabled: true,
       script: ruleScript
-        .replace("##IDP_REDIRECTOR_AUDIENCE##", config("EXTENSION_AUDIENCE"))
+        .replace(
+          "##IDP_REDIRECTOR_AUDIENCE##",
+          installConfig.EXTENSION_AUDIENCE
+        )
         .replace(
           "##EXTENSION_CLIENT_NAME##",
-          extensionConfig.EXTENSION_CLIENT_NAME
+          installConfig.EXTENSION_CLIENT_NAME
         ),
-      name: extensionConfig.DENY_ACCESS_RULE_NAME
+      name: installConfig.DENY_ACCESS_RULE_NAME
     });
 
     try {
@@ -161,7 +160,7 @@ const $module = (module.exports = () => {
 
       const deploymentClientGrant = await req.auth0.createClientGrant({
         client_id: deploymentClient.client_id,
-        audience: config("EXTENSION_AUDIENCE"),
+        audience: installConfig.EXTENSION_AUDIENCE,
         scope: defaultScopes.map(scope => scope.value)
       });
 
@@ -194,6 +193,4 @@ const $module = (module.exports = () => {
   });
 
   return hooks;
-});
-
-$module.extensionConfig = extensionConfig;
+};

@@ -1,6 +1,7 @@
 const Transport = require("winston-transport");
 const axiosLib = require("axios");
 const config = require("./config");
+const installConfig = require("./installConfig.js");
 const HttpsAgent = require("agentkeepalive").HttpsAgent;
 
 //
@@ -30,7 +31,7 @@ module.exports = class YourCustomTransport extends Transport {
 
       const apiKey = config("DATADOG_API_KEY");
       const url =
-        config("DATADOG_URL") ||
+        installConfig.DATADOG_URL ||
         "https://http-intake.logs.datadoghq.com/v1/input";
 
       await axios.post(url, info, {

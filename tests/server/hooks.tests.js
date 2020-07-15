@@ -26,12 +26,16 @@ const Auth0ExtensionToolsStub = {
 const hooks = proxyquire("../../server/routes/hooks", {
   "auth0-extension-express-tools": Auth0ExtensionToolsStub
 });
-const { DENY_ACCESS_RULE_NAME, EXTENSION_CLIENT_NAME } = hooks.extensionConfig;
+const {
+  DENY_ACCESS_RULE_NAME,
+  EXTENSION_CLIENT_NAME
+} = require("../../server/lib/installConfig.js");
 
 chai.use(sinonChai);
 
 describe("#idp-redirector/hooks", () => {
   const defaultConfig = require("../../server/config.json");
+
   const fakeDataDogHost = "https://datadog.internal";
   const fakeDataDogPath = "/v1/logs";
   defaultConfig["DATADOG_URL"] = fakeDataDogHost + fakeDataDogPath;

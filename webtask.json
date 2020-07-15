@@ -20,22 +20,10 @@
     "scopes": "create:clients read:clients update:clients delete:clients create:resource_servers read:resource_servers update:resource_servers delete:resource_servers read:connections create:client_grants read:client_grants create:rules read:rules delete:rules read:tenant_settings"
   },
   "secrets": {
-    "EXTENSION_AUDIENCE": {
-      "description": "The audience for the extension API",
-      "default": "urn:idp-redirector-api"
-    },
-    "DEPLOYMENT_CLIENT_NAME": {
-      "description": "The name of the CI/CD client",
-      "default": "IDP Redirector CI/CD Client"
-    },
     "DATADOG_API_KEY": {
-      "description": "API key for DataDog",
+      "description": "The API key for sending logs to DataDog over HTTPs",
       "required": true,
       "type": "password"
-    },
-    "DATADOG_URL": {
-      "description": "The datadog URL for sending the logs",
-      "example": "https://http-intake.logs.datadoghq.com/v1/input"
     }
   }
 }

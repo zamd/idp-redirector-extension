@@ -3,6 +3,7 @@ const tools = require("auth0-extension-express-tools");
 const expressApp = require("./server");
 const config = require("./server/lib/config");
 const logger = require("./server/lib/logger");
+const { version: extensionVersion } = require("./webtask.json");
 
 process.on("uncaughtException", err => {
   console.error(err);
@@ -11,7 +12,7 @@ process.on("uncaughtException", err => {
 const createServer = tools.createServer((cfg, storage) => {
   logger.verbose(
     "Starting Idp Redirector Extension - Version:",
-    process.env.CLIENT_VERSION
+    extensionVersion
   );
   return expressApp(cfg, storage);
 });

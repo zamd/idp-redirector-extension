@@ -187,6 +187,12 @@ const $module = (module.exports = () => {
     }
   });
 
+  hooks.use("/on-update", hookValidator("/.extensions/on-update"));
+  hooks.put("/on-update", async (req, res) => {
+    logger.verbose(`Update running version ${metadata.version} ...`);
+    res.sendStatus(204);
+  });
+
   return hooks;
 });
 

@@ -99,6 +99,7 @@
       "createClient": true,
       "onInstallPath": "/.extensions/on-install",
       "onUninstallPath": "/.extensions/on-uninstall",
+      "onUpdatePath": "/.extensions/on-update",
       "scopes": "create:clients create:resource_servers read:clients read:connections"
     },
     "externals": [

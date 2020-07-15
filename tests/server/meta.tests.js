@@ -1,7 +1,7 @@
 const nock = require("nock");
 const chai = require("chai");
 const request = require("supertest");
-const { describe, it, beforeEach } = require("mocha");
+const { describe, it } = require("mocha");
 const express = require("express");
 const proxyquire = require("proxyquire").noCallThru();
 
@@ -19,13 +19,13 @@ describe("#idp-redirector/meta", () => {
   app.use("/meta", meta());
 
   describe("GET /meta", () => {
-    beforeEach(() => {
-      nock("https://api.gethub.com")
-        .get("/repos/auth0-extension/idp-redirector-extension/releases/latest")
-        .reply();
-    });
     it("returns version from webtask.json metadata", done => {
       const expectedVersion = "1.0.0";
+
+      nock("https://api.github.com")
+        .get("/repos/auth0-extension/idp-redirector-extension/releases/latest")
+        .reply(404);
+
       request(app)
         .get("/meta")
         .expect(200)
